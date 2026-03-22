@@ -1,4 +1,4 @@
-# AI Média Obszervatórium – Budapest Bar Association
+# AI Médiafigyelő – Budapesti Ügyvédi Kamara (MI bizottság számára teszt megoldása)
 
 ## Célkitűzés
 
