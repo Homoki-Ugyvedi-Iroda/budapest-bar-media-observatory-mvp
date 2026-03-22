@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – Bar Media Observatory{% endblock %}
+{% block content %}
+<h1>Bar Media Observatory</h1>
+
+<h2>Actions</h2>
+<form method="post" action="{{ url_for('run_parse') }}" style="display:inline">
+  <button type="submit" class="btn">Run Parser</button>
+</form>
+&nbsp;
+<form method="post" action="{{ url_for('run_draft') }}" style="display:inline">
+  <button type="submit" class="btn btn-secondary">Run Drafter</button>
+</form>
+
+<h2>Parse Runs</h2>
+{% if parsed_files %}
+<ul>
+  {% for f in parsed_files %}
+  {% set d = f.replace('parsed_', '').replace('.yaml', '') %}
+  <li>
+    <a href="{{ url_for('review', date=d) }}">{{ d[:4] }}-{{ d[4:6] }}-{{ d[6:] }}</a>
+    &mdash; {{ f }}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p style="color:#888">No parse runs yet.</p>
+{% endif %}
+{% endblock %}

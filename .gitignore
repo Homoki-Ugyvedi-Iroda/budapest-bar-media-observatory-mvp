@@ -7,7 +7,6 @@ __pycache__/
 *.so
 
 # Distribution / packaging
-log/
 .Python
 build/
 develop-eggs/
@@ -51,6 +50,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+pytest-*
+tests/
 
 # Translations
 *.mo
@@ -215,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+#logs
+log/
+
+#LLMs
+.claude/
+
+#project specific content
+content_*/
+parsed_*.yaml
+tosummarize_*.yaml

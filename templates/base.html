@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Bar Media Observatory{% endblock %}</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #222; background: #fff; }
+    h1 { font-size: 1.4em; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+    h2 { font-size: 1.1em; margin-top: 32px; color: #444; }
+    a { color: #0055aa; }
+    .flash { background: #f0f4ff; border: 1px solid #99b; padding: 8px 14px; margin-bottom: 16px; border-radius: 4px; }
+    .flash.error { background: #fff0f0; border-color: #c88; color: #700; }
+    .btn { display: inline-block; padding: 7px 16px; background: #0055aa; color: #fff; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: .95em; }
+    .btn:hover { background: #003d80; }
+    .btn-secondary { background: #666; }
+    .btn-secondary:hover { background: #444; }
+    .btn-danger { background: #a00; }
+    .btn-danger:hover { background: #700; }
+    nav { margin-bottom: 24px; font-size: .9em; display: flex; align-items: center; gap: 16px; }
+    nav a { color: #0055aa; text-decoration: none; }
+    nav .spacer { flex: 1; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #1a1a1a; color: #ddd; }
+      h2 { color: #aaa; }
+      h1 { border-color: #444; }
+      a { color: #6ba3f5; }
+      nav a { color: #6ba3f5; }
+      .flash { background: #2a2a3a; border-color: #556; color: #ddd; }
+      table { color: #ddd; }
+      th { color: #aaa; border-color: #444 !important; }
+      tr { border-color: #333 !important; }
+      input[type=password], input[type=text] { background: #2a2a2a; color: #ddd; border: 1px solid #555; }
+    }
+  </style>
+</head>
+<body>
+  {% if session.logged_in %}
+  <nav>
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('review_list') }}">Review</a>
+    <span class="spacer"></span>
+    <a href="{{ url_for('logout') }}" class="btn btn-danger" style="font-size:.85em;padding:5px 12px">Log out</a>
+  </nav>
+  {% endif %}
+  {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+      <div class="flash {{ category }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</body>
+</html>

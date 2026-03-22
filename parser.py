@@ -1,4 +1,5 @@
 import os
+import re
 import glob
 import logging
 from datetime import date
@@ -46,12 +47,21 @@ def load_seen_urls():
 
 # --- Keyword matching ---
 def match_keywords(text, keywords):
-    text_lower = text.lower()
-    return [kw for kw in keywords if kw.lower() in text_lower]
+    matched = []
+    for kw in keywords:
+        if len(kw) < 5:
+            # Short keywords: case-sensitive, must start at a word boundary
+            if re.search(r'\b' + re.escape(kw), text):
+                matched.append(kw)
+        else:
+            # Longer keywords: case-insensitive substring
+            if kw.lower() in text.lower():
+                matched.append(kw)
+    return matched
 
 
 # --- Per-site parsing ---
-def parse_site(site, keywords, seen_urls, session):
+def parse_site(site, keywords, seen_urls, session, today):
     url = site["url"]
     name = site["short_name"]
     sel = site.get("selectors") or {}
@@ -75,6 +85,8 @@ def parse_site(site, keywords, seen_urls, session):
     for c in candidates:
         if c["url"] in seen_urls:
             continue
+        if not c.get("date"):
+            c["date"] = today
         matched = match_keywords(f"{c['title']} {c.get('snippet', '')}", keywords)
         if not matched:
             continue
@@ -124,11 +136,15 @@ def _parse_generic(soup, base_url, name):
         if not title or len(title) < 10:  # skip nav/icon links
             continue
         full_url = urljoin(base_url, href)
+        # Use parent element text (minus the link text) as snippet
+        snippet = ""
+        if a.parent:
+            snippet = a.parent.get_text(separator=" ", strip=True).replace(title, "").strip()[:500]
         results.append({
             "title": title,
             "url": full_url,
             "date": "",
-            "snippet": "",
+            "snippet": snippet,
             "type": "pdf" if full_url.lower().endswith(".pdf") else "html",
         })
     return results
@@ -141,13 +157,13 @@ def run_parser():
     session = requests.Session()
     session.headers["User-Agent"] = "Mozilla/5.0 (compatible; BudapestBarObservatory/1.0)"
 
+    today = date.today().strftime("%Y%m%d")
     all_results = []
     for site in config["sites"]:
         keywords = build_keywords(config, site["language"])
-        results = parse_site(site, keywords, seen_urls, session)
+        results = parse_site(site, keywords, seen_urls, session, today)
         all_results.extend(results)
 
-    today = date.today().strftime("%Y%m%d")
     outfile = f"parsed_{today}.yaml"
     with open(outfile, "w", encoding="utf-8") as f:
         yaml.dump(all_results, f, allow_unicode=True, sort_keys=False)

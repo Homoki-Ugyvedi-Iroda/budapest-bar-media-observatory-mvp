@@ -51,14 +51,18 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
 
 ### B) Review Tool (Flask web UI)
 
-- Opens a `parsed_[yyyymmdd].yaml` and shows results to a human reviewer
-- Provides:
-  - **B1)** Overview of all results from that parse run
-  - **B2)** Translation preview of selected items using Claude Sonnet
-  - **B3)** Ability to mark items for inclusion in the newsletter
-- Marked items are saved to `tosummarize_[yyyymmdd].yaml`
-- The actual HTML/PDF content of marked items is downloaded into `content_[yyyymmdd]/downloaded/`
-- All review actions are logged
+- Lists available `parsed_[yyyymmdd].yaml` files for selection
+- Items displayed grouped by source (bar association)
+- For each item:
+  - Snippet (up to 1000 characters) auto-translated to English via Claude Sonnet for quick scanning
+  - Size of original content in KB (HTML or PDF)
+  - Button to open original URL in a new browser tab
+  - Checkbox: download original HTML/PDF to `content_[yyyymmdd]/downloaded/`
+  - Checkbox: translate full original content to English, saved to `content_[yyyymmdd]/translations/`
+- "Save" button at the bottom of the list:
+  - Saves `tosummarize_[yyyymmdd].yaml` with all checked items
+  - Triggers batch download and batch translation for all checked items
+  - Logs all actions to `logs/review.log`
 
 ### C) Drafter Tool
 
@@ -74,13 +78,40 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
 - Newsletter and translations are downloaded via FTP when needed
 - All drafting and translation steps are logged
 
+## Flask App Routes
+
+| Route | Description |
+|---|---|
+| `GET /login` | Login page |
+| `POST /login` | Authenticate with password from `.env` |
+| `GET /logout` | Clear session |
+| `GET /` | Dashboard: "Run Parser" and "Run Drafter" buttons, links to review files |
+| `POST /parse` | Trigger parser manually |
+| `GET /review` | List available `parsed_*.yaml` files |
+| `GET /review/<date>` | Review items for a parse run |
+| `POST /review/<date>/save` | Save YAML, trigger batch download + translation |
+| `POST /draft` | Run drafter on latest unprocessed `tosummarize_*.yaml` |
+
+## Authentication & Security
+
+- Single-user password login; password stored in `.env` as `APP_PASSWORD`
+- Flask session used to track login state; `secret_key` also from `.env`
+- All routes except `/login` require authentication
+- API keys (Anthropic) stored in `.env`, never in YAML or code
+
 ## File & Directory Structure
 
 ```
+app.py                              # Flask app (all routes)
+parser.py                           # parser module (also runnable standalone)
 sites.yaml                          # site list + per-site parse config
 editorial_instructions.md           # newsletter structure/priority rules
-.env                                # API keys, credentials (not committed)
-parser.py                           # parser module (also runnable standalone)
+.env                                # APP_PASSWORD, FLASK_SECRET_KEY, ANTHROPIC_API_KEY
+templates/                          # Jinja2 HTML templates
+  ├── login.html
+  ├── dashboard.html
+  ├── review_list.html
+  └── review.html
 parsed_[yyyymmdd].yaml              # parser output
 tosummarize_[yyyymmdd].yaml         # reviewer-selected items
 content_[yyyymmdd]/
@@ -100,6 +131,9 @@ logs/
 - Review tool and drafter accessed via web UI
 - `content_[yyyymmdd]/` directories are downloaded via FTP as needed and deleted manually
 
-## Security
+## Deployment
 
-- API keys (Anthropic, any SMTP credentials) stored in `.env`, never in YAML or code
+- Single Flask app on PythonAnywhere with routes/endpoints for all three components
+- Parser triggered weekly via PythonAnywhere scheduled task, or manually via dashboard
+- Drafter triggered manually via dashboard
+- `content_[yyyymmdd]/` directories downloaded via FTP and deleted manually after use

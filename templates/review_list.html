@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Review – Bar Media Observatory{% endblock %}
+{% block content %}
+<h1>Review Parse Runs</h1>
+{% if files %}
+<ul>
+  {% for f in files %}
+  {% set d = f.replace('parsed_', '').replace('.yaml', '') %}
+  <li><a href="{{ url_for('review', date=d) }}">{{ d[:4] }}-{{ d[4:6] }}-{{ d[6:] }}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p style="color:#888">No parse runs found.</p>
+{% endif %}
+{% endblock %}
