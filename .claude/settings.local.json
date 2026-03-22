@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.adwokatura.pl)",
+      "WebFetch(domain:kirp.pl)",
+      "WebFetch(domain:www.cak.cz)",
+      "WebFetch(domain:www.sak.sk)",
+      "WebFetch(domain:www.odv-zb.si)",
+      "WebFetch(domain:www.hok-cba.hr)",
+      "WebFetch(domain:www.unbr.ro)",
+      "WebFetch(domain:www.oerak.at)",
+      "WebFetch(domain:www.vas.bg)"
+    ]
+  }
+}

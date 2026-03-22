@@ -1,0 +1,175 @@
+# Budapest Bar Media Observatory — Site Configuration
+# Each site entry contains the URL to scrape, language code, short name, and full name.
+# Per-site parsing selectors (css_selector, link_selector, etc.) to be filled during implementation.
+
+sites:
+  - url: https://www.adwokatura.pl/aktualnosci/
+    language: pl
+    short_name: NRA
+    full_name: Naczelna Rada Adwokacka (Polish Bar Council)
+    selectors: {}
+
+  - url: https://kirp.pl/aktualnosci/
+    language: pl
+    short_name: KIRP
+    full_name: Krajowa Izba Radców Prawnych (National Chamber of Legal Advisors)
+    selectors: {}
+
+  - url: https://www.cak.cz/aktuality
+    language: cs
+    short_name: ČAK
+    full_name: Česká advokátní komora (Czech Bar Association)
+    selectors: {}
+
+  - url: https://www.sak.sk/web/sk/cms/news
+    language: sk
+    short_name: SAK
+    full_name: Slovenská advokátska komora (Slovak Bar Association)
+    selectors: {}
+
+  - url: https://www.odv-zb.si/odvetniska-zbornica/objave/novice/
+    language: sl
+    short_name: OZS
+    full_name: Odvetniška zbornica Slovenije (Bar Association of Slovenia)
+    selectors: {}
+
+  - url: https://www.hok-cba.hr/novosti/
+    language: hr
+    short_name: HOK
+    full_name: Hrvatska odvjetnička komora (Croatian Bar Association)
+    selectors: {}
+
+  - url: https://www.unbr.ro/category/ultimele-stiri/
+    language: ro
+    short_name: UNBR
+    full_name: Uniunea Națională a Barourilor din România (National Union of Romanian Bars)
+    selectors: {}
+
+  - url: https://www.oerak.at/aktuelles/aktuelles-archiv/
+    language: de
+    short_name: ÖRAK
+    full_name: Österreichischer Rechtsanwaltskammertag (Austrian Bar Association)
+    selectors: {}
+
+  - url: https://www.vas.bg/bg/c/news
+    language: bg
+    short_name: ВАдС
+    full_name: Висш адвокатски съвет (Supreme Bar Council of Bulgaria)
+    selectors: {}
+
+# Keywords for identifying AI-related content.
+# "global" keywords are used as-is across all languages (acronyms, brand names).
+# "translated" keywords are in the same order for every language.
+
+keywords:
+  global:
+    - LLM
+    - genAI
+    - NLP
+    - ChatGPT
+    - OpenAI
+    - Anthropic
+    - Claude
+    - Harvey
+    - Legora
+
+  translated:
+    en:
+      - AI
+      - artificial intelligence
+      - agentic
+      - agents
+      - language model
+      - machine learning
+      - deep learning
+      - natural language processing
+      - neural network
+      - algorithmic
+    pl:
+      - SI
+      - sztuczna inteligencja
+      - agentowy
+      - agenci
+      - model językowy
+      - uczenie maszynowe
+      - uczenie głębokie
+      - przetwarzanie języka naturalnego
+      - sieć neuronowa
+      - algorytmiczny
+    cs:
+      - UI
+      - umělá inteligence
+      - agentní
+      - agenti
+      - jazykový model
+      - strojové učení
+      - hluboké učení
+      - zpracování přirozeného jazyka
+      - neuronová síť
+      - algoritmický
+    sk:
+      - UI
+      - umelá inteligencia
+      - agentný
+      - agenti
+      - jazykový model
+      - strojové učenie
+      - hlboké učenie
+      - spracovanie prirodzeného jazyka
+      - neurónová sieť
+      - algoritmický
+    sl:
+      - UI
+      - umetna inteligenca
+      - agentni
+      - agenti
+      - jezikovni model
+      - strojno učenje
+      - globoko učenje
+      - obdelava naravnega jezika
+      - nevronska mreža
+      - algoritmični
+    hr:
+      - UI
+      - umjetna inteligencija
+      - agentni
+      - agenti
+      - jezični model
+      - strojno učenje
+      - duboko učenje
+      - obrada prirodnog jezika
+      - neuronska mreža
+      - algoritamski
+    ro:
+      - IA
+      - inteligență artificială
+      - agentic
+      - agenți
+      - model lingvistic
+      - învățare automată
+      - învățare profundă
+      - procesarea limbajului natural
+      - rețea neuronală
+      - algoritmic
+    de:
+      - KI
+      - künstliche Intelligenz
+      - agentisch
+      - Agenten
+      - Sprachmodell
+      - maschinelles Lernen
+      - tiefes Lernen
+      - Verarbeitung natürlicher Sprache
+      - neuronales Netzwerk
+      - algorithmisch
+    bg:
+      - ИИ
+      - изкуствен интелект
+      - агентен
+      - агенти
+      - езиков модел
+      - машинно обучение
+      - дълбоко обучение
+      - обработка на естествен език
+      - невронна мрежа
+      - алгоритмичен
