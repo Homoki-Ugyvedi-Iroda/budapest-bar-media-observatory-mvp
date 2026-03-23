@@ -28,3 +28,6 @@
 - Prefer items that directly concern the legal profession (regulation, guidance, tools for lawyers)
 - Prefer items about AI policy, ethics, or legislation over general technology news
 - If multiple items from the same bar cover similar topics, they may be briefly cross-referenced
+
+## Translation terminology
+- Always translate "lawyer" as "ügyvéd" into Hungarian, never into "jogász".

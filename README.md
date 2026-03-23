@@ -1,5 +1,31 @@
 # AI Média Obszervatórium – Budapest Bar Association
 
+## Hogyan használd? — Normál heti folyamat
+
+### 1. lépés: Parser futtatása
+1. Nyisd meg a webalkalmazást böngészőben, és jelentkezz be
+2. Kattints a **Run Parser** gombra a dashboardon
+3. A parser lekéri a `sites.yaml`-ban szereplő weboldalakat, kulcsszavas szűréssel kiválasztja az AI-vonatkozású híreket, és elmenti a `parsed_[mai dátum].yaml` fájlba
+4. A futás eredménye (talált tételek száma) flash üzenetben jelenik meg; a részletek a `logs/parser.log` fájlban olvashatók
+
+### 2. lépés: Áttekintés és kijelölés
+1. A dashboardon kattints a legfrissebb parse-futás dátumára
+2. Az áttekintő oldalon a találatok forrás szerint csoportosítva jelennek meg; a kivonatokat a rendszer automatikusan angolra fordítja a gyors átfutáshoz
+3. Minden tételnél:
+   - Kattints az **Open** gombra az eredeti tartalom megtekintéséhez új ablakban
+   - Pipáld be a **Download** jelölőnégyzetet, ha a teljes HTML/PDF tartalmat le szeretnéd tölteni
+   - Pipáld be a **Translate** jelölőnégyzetet, ha az egész tartalmat angolra kell fordítani a hírlevélhez
+4. Kattints a lap alján a **Save** gombra — a rendszer elmenti a `tosummarize_[dátum].yaml` fájlt, elvégzi a kötegelt letöltést és fordítást, és az oldalon maradsz
+5. Ha szükséges, módosíthatod a kijelölést, és újra mentheted
+
+### 3. lépés: Hírlevél elkészítése
+1. Visszatérve a dashboardra, kattints a **Run Drafter** gombra
+2. A Drafter megkeresi a legfrissebb, még fel nem dolgozott `tosummarize_*.yaml` fájlt, és az `editorial_instructions.md` alapján magyar nyelvű hírlevelet készít
+3. A kész hírlevél HTML formátumban elérhető: `content_[dátum]/newsletter/`
+4. Töltsd le FTP-n, ellenőrizd, majd küldd el
+
+---
+
 ## Célkitűzés
 
 Az eszköz célja, hogy a Budapesti Ügyvédi Kamara számára automatikusan figyelje a közép-európai nemzeti és regionális ügyvédi kamarák weboldalain megjelenő, mesterséges intelligenciával kapcsolatos híreket, és azokat heti magyar nyelvű hírlevél formájában eljuttassa a szerkesztőhöz.
@@ -33,18 +59,39 @@ A rendszer három fő komponensből áll, amelyek egyetlen Flask webalkalmazásb
 
 ---
 
-## PDF-kezelés
+## Külső tartalmak integrálása
+
+Nem minden fontos tartalom érhető el automatikus scraping-gel. Az alábbi módszerekkel manuálisan is beilleszthető tartalom a hírlevelbe.
+
+### Nem scrape-elhető HTML-ek (pl. CCBE LinkedIn-bejegyzések, zárt oldalak)
+
+1. Nyisd meg a tartalmat a böngészőben, és mentsd el HTML-ként (vagy másold ki a szöveget egy `.txt` fájlba)
+2. A dashboardon, az **Add Manual Item** űrlapon add meg:
+   - A kívánt dátumot (amelyik `tosummarize_*.yaml`-ba kerüljön)
+   - A forrást (pl. CCBE)
+   - A cikk címét
+   - Az eredeti URL-t (a hírlevelben forrásként fog szerepelni)
+3. Kattints az **Add Item** gombra — a rendszer hozzáadja a tételt a `tosummarize_[dátum].yaml`-hoz, és megmutatja a várt fordítási fájlnevet
+4. Az **Upload Translation** űrlapon töltsd fel a mentett HTML vagy TXT fájlt (ugyanazon dátummal és URL-lel)
+5. A Drafter automatikusan felhasználja a feltöltött fájlt a magyar összefoglaló elkészítéséhez
+
+### PDF-ek (automatikus scraping esetén is, manuális fordítással)
 
 **Fontos:** A parser csak PDF-hivatkozásokat gyűjt, a fájl tartalmát nem olvassa be automatikusan.
 
-- **PDF letöltés:** Az áttekintő felületen a letöltés jelölőnégyzet kipipálásával a PDF a `content_[yyyymmdd]/downloaded/` mappába kerül. Ha a fájl nem érhető el automatikusan, kézzel is letölthető ugyanide.
-- **PDF fordítás:** Az automatikus fordítás PDF-fájloknál nem támogatott. Ha a PDF szöveges tartalma kinyerhető (pl. copy-paste vagy külső eszközzel), a szöveget a következő névkonvencióval kell menteni:
+- **Letöltés:** Az áttekintő felületen a Download jelölőnégyzet kipipálásával a PDF a `content_[yyyymmdd]/downloaded/` mappába kerül. Ha automatikusan nem érhető el, kézzel is letölthető FTP-n keresztül ugyanide.
+- **Fordítás:** Az automatikus fordítás PDF-fájloknál nem támogatott. A szöveg kinyeréséhez:
+  1. Nyisd meg a PDF-et, és másold ki a szöveget (vagy használj külső PDF-szövegkinyerő eszközt)
+  2. Fordítsd le angolra (pl. DeepL vagy Claude segítségével)
+  3. Mentsd el a fordítást `.txt` fájlként, és töltsd fel az **Upload Translation** űrlapon — vagy helyezd el közvetlenül FTP-n:
 
   ```
   content_[yyyymmdd]/translations/[biztonságos_fájlnév]_en.txt
   ```
 
-  Ha ez a fájl létezik, a Drafter automatikusan felhasználja a magyar összefoglaló elkészítéséhez, és a tartalom bekerül a hírlevelbe.
+  Ha ez a fájl megtalálható, a Drafter automatikusan felhasználja a magyar összefoglaló elkészítéséhez.
+
+> **Megjegyzés a fájlnevekről:** A rendszer az URL-ből képezi a fájlnevet (speciális karakterek helyett aláhúzás, max. 80 karakter). Az Add Manual Item után megjelenő flash üzenet pontosan megmutatja a várt fájlnevet.
 
 ---
 

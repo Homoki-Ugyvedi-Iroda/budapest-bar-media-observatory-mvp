@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Bar Media Observatory{% endblock %}</title>
+  <title>{% block title %}Budapesti Ügyvédi Kamara Médiafigyelő{% endblock %}</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #222; background: #fff; }
     h1 { font-size: 1.4em; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
@@ -37,10 +37,10 @@
 <body>
   {% if session.logged_in %}
   <nav>
-    <a href="{{ url_for('dashboard') }}">Dashboard</a>
-    <a href="{{ url_for('review_list') }}">Review</a>
+    <a href="{{ url_for('dashboard') }}">Irányítópult</a>
+    <a href="{{ url_for('review_list') }}">Áttekintés</a>
     <span class="spacer"></span>
-    <a href="{{ url_for('logout') }}" class="btn btn-danger" style="font-size:.85em;padding:5px 12px">Log out</a>
+    <a href="{{ url_for('logout') }}" class="btn btn-danger" style="font-size:.85em;padding:5px 12px">Kijelentkezés</a>
   </nav>
   {% endif %}
   {% with messages = get_flashed_messages(with_categories=True) %}

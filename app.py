@@ -63,7 +63,8 @@ def logout():
 @login_required
 def dashboard():
     parsed_files = sorted(glob.glob("parsed_*.yaml"), reverse=True)
-    return render_template("dashboard.html", parsed_files=parsed_files)
+    today = date.today().strftime("%Y%m%d")
+    return render_template("dashboard.html", parsed_files=parsed_files, today=today)
 
 
 # --- Parser ---
@@ -156,6 +157,82 @@ def review_save(date):
     logging.info(f"Review saved: {len(to_summarize)} items → {tosummarize_path}")
     flash(f"Saved {len(to_summarize)} items.")
     return redirect(url_for("review", date=date))
+
+
+# --- Manual Item ---
+
+def _extract_title(content, is_html):
+    if is_html:
+        soup = BeautifulSoup(content, "html.parser")
+        if soup.title and soup.title.string:
+            return soup.title.string.strip()
+        h1 = soup.find("h1")
+        if h1:
+            return h1.get_text(strip=True)
+    for line in content.splitlines():
+        line = line.strip()
+        if line:
+            return line[:200]
+    return "Cím nélkül"
+
+
+def _match_source(url):
+    from urllib.parse import urlparse
+    domain = urlparse(url).netloc.lower().lstrip("www.")
+    with open("sites.yaml", encoding="utf-8") as f:
+        sites = yaml.safe_load(f).get("sites", [])
+    for site in sites:
+        site_domain = urlparse(site["url"]).netloc.lower().lstrip("www.")
+        if domain == site_domain or domain.endswith("." + site_domain):
+            return site["short_name"]
+    return domain.split(".")[0].upper()[:10]
+
+
+@app.route("/manual-item", methods=["POST"])
+@login_required
+def add_manual_item():
+    item_date = request.form.get("date", date.today().strftime("%Y%m%d")).strip()
+    url = request.form.get("url", "").strip()
+    file = request.files.get("file")
+
+    if not url or not file:
+        flash("URL és fájl megadása kötelező.", "error")
+        return redirect(url_for("dashboard"))
+
+    raw = file.read().decode("utf-8", errors="replace")
+    is_html = file.filename.lower().endswith(".html")
+    title = _extract_title(raw, is_html)
+    source = _match_source(url)
+
+    trans_dir = f"content_{item_date}/translations"
+    os.makedirs(trans_dir, exist_ok=True)
+    text = BeautifulSoup(raw, "html.parser").get_text(separator="\n", strip=True) if is_html else raw
+    with open(os.path.join(trans_dir, _safe_filename(url) + "_en.txt"), "w", encoding="utf-8") as f:
+        f.write(text)
+
+    item = {
+        "source": source, "title": title, "url": url,
+        "date": item_date, "type": "html" if is_html else "txt",
+        "matched_keywords": ["manual"], "snippet": "", "manual": True,
+    }
+
+    tosummarize_path = f"tosummarize_{item_date}.yaml"
+    existing = []
+    if os.path.exists(tosummarize_path):
+        with open(tosummarize_path, encoding="utf-8") as f:
+            existing = yaml.safe_load(f) or []
+
+    if any(i["url"] == url for i in existing):
+        flash(f"Ez az URL már szerepel: {tosummarize_path}.", "error")
+        return redirect(url_for("dashboard"))
+
+    existing.append(item)
+    with open(tosummarize_path, "w", encoding="utf-8") as f:
+        yaml.dump(existing, f, allow_unicode=True, sort_keys=False)
+
+    logging.info(f"Kézi tétel hozzáadva: {title} ({source}) → {tosummarize_path}")
+    flash(f"Hozzáadva: '{title}' (forrás: {source})")
+    return redirect(url_for("dashboard"))
 
 
 # --- Drafter ---

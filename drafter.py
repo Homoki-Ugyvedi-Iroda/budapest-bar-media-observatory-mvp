@@ -95,12 +95,12 @@ def _build_html(items, date):
 def run_drafter():
     path, date = _find_target()
     if not path:
-        return "No unprocessed tosummarize files found."
+        return "Nincsen feldolgozatlan tosummarize állomány."
 
     with open(path, encoding="utf-8") as f:
         items = yaml.safe_load(f) or []
     if not items:
-        return f"No items in {path}."
+        return f"Nincsenek tételek itt: {path}."
 
     instructions = ""
     if os.path.exists("editorial_instructions.md"):
@@ -115,7 +115,7 @@ def run_drafter():
         content = _get_content(item, content_dir)
         summary = _summarize_hu(client, item, content, instructions)
         drafted.append({**item, "summary_hu": summary})
-        logging.info(f"Drafted: {item['title']}")
+        logging.info(f"Létrehozva: {item['title']}")
 
     os.makedirs(f"{content_dir}/newsletter", exist_ok=True)
     out = f"{content_dir}/newsletter/newsletter_{date}.html"
@@ -123,7 +123,7 @@ def run_drafter():
         f.write(_build_html(drafted, date))
 
     logging.info(f"Newsletter saved: {out}")
-    return f"Newsletter drafted: {out} ({len(drafted)} items)"
+    return f"Hírlevél létrehozva: {out} ({len(drafted)} items)"
 
 
 if __name__ == "__main__":

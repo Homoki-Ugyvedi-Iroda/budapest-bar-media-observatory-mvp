@@ -64,6 +64,20 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
   - Triggers batch download and batch translation for all checked items
   - Logs all actions to `logs/review.log`
 
+### D) Manual Item & Translation Upload
+
+- Dashboard provides an "Add Manual Item" form for content not found by the parser (e.g. paywalled articles, LinkedIn posts copied to HTML, manually obtained documents)
+- Fields: date (YYYYMMDD), source (dropdown from `sites.yaml`), title, URL
+- Item is appended directly to `tosummarize_[date].yaml`, bypassing the review step
+- Duplicate URLs within the same file are rejected
+- On success, the UI shows the expected translation filename for reference
+- Dashboard also provides an "Upload Translation" form:
+  - Fields: date, URL (used to derive filename), file (`.txt` or `.html`)
+  - File is saved to `content_[date]/translations/{safe_filename(url)}_en.txt`
+  - The drafter picks it up automatically as the content source for that item
+- Manual items are assumed to be in English — no automatic translation is applied
+- All actions logged to `logs/review.log`
+
 ### C) Drafter Tool
 
 - Finds the latest `tosummarize_[yyyymmdd].yaml` that has not yet been processed
@@ -91,6 +105,8 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
 | `GET /review/<date>` | Review items for a parse run |
 | `POST /review/<date>/save` | Save YAML, trigger batch download + translation |
 | `POST /draft` | Run drafter on latest unprocessed `tosummarize_*.yaml` |
+| `POST /manual-item` | Add manual item directly to `tosummarize_*.yaml` |
+| `POST /upload-translation` | Upload English translation file to `content_*/translations/` |
 
 ## Authentication & Security
 
@@ -126,14 +142,7 @@ logs/
 
 ## Deployment
 
-- Single Flask app on PythonAnywhere with routes/endpoints for all three components
-- Parser triggered weekly (PythonAnywhere scheduled task or manual)
-- Review tool and drafter accessed via web UI
-- `content_[yyyymmdd]/` directories are downloaded via FTP as needed and deleted manually
-
-## Deployment
-
-- Single Flask app on PythonAnywhere with routes/endpoints for all three components
+- Single Flask app on PythonAnywhere with routes/endpoints for all components
 - Parser triggered weekly via PythonAnywhere scheduled task, or manually via dashboard
 - Drafter triggered manually via dashboard
 - `content_[yyyymmdd]/` directories downloaded via FTP and deleted manually after use

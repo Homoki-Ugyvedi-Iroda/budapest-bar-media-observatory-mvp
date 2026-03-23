@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Review {{ date[:4] }}-{{ date[4:6] }}-{{ date[6:] }} – Bar Media Observatory{% endblock %}
+{% block title %}Áttekintés – {{ date[:4] }}-{{ date[4:6] }}-{{ date[6:] }} – Budapesti Ügyvédi Kamara Médiafigyelő{% endblock %}
 {% block content %}
-<h1>Review – {{ date[:4] }}-{{ date[4:6] }}-{{ date[6:] }}</h1>
+<h1>Áttekintés – {{ date[:4] }}-{{ date[4:6] }}-{{ date[6:] }}</h1>
 
 {% if translation_error %}
 <div style="background:#fff8e0;border:1px solid #cc9;padding:8px 14px;border-radius:4px;margin-bottom:12px;font-size:.9em">
@@ -68,7 +68,7 @@
     </div>
 
   {% else %}
-    <p style="color:#888">No items found in this parse run.</p>
+    <p style="color:#888">A forrásletöltő munkamenet nem talált egy elemet sem.</p>
     <a href="{{ url_for('dashboard') }}">← Back to dashboard</a>
   {% endif %}
 
