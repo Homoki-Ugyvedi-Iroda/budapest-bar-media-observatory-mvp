@@ -4,17 +4,15 @@
 <h1>Budapesti Ügyvédi Kamara Médiafigyelő</h1>
 
 <h2>Műveletek</h2>
-<form method="post" action="{{ url_for('run_parse') }}" style="display:inline">
-  <button type="submit" class="btn">Forrásletöltő futtatása ("parser")</button>
-</form>
-&nbsp;
-<a href="{{ url_for('review_pending') }}" class="btn btn-secondary">Feldolgozatlan forrásletöltések</a>
-&nbsp;
-<a href="{{ url_for('draft_select') }}" class="btn btn-secondary">Hírlevél készítő ("drafter")</a>
-&nbsp;
-<a href="{{ url_for('editor_select') }}" class="btn btn-secondary">Feldolgozatlan összefoglalások</a>
-&nbsp;
-<a href="{{ url_for('downloads') }}" class="btn btn-secondary">Letöltés</a>
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+  <form method="post" action="{{ url_for('run_parse') }}" style="display:contents">
+    <button type="submit" class="btn btn-secondary">Forrásletöltő futtatása ("parser")</button>
+  </form>
+  <a href="{{ url_for('review_pending') }}" class="btn btn-secondary">Feldolgozatlan forrásletöltések</a>
+  <a href="{{ url_for('editor_select') }}" class="btn btn-secondary">Feldolgozatlan összefoglalások</a>
+  <a href="{{ url_for('draft_select') }}" class="btn btn-secondary">Hírlevél készítő ("drafter")</a>
+  <a href="{{ url_for('downloads') }}" class="btn btn-secondary">Letöltés</a>
+</div>
 
 
 <h2>Lefutott forrásletöltő munkamenetek</h2>

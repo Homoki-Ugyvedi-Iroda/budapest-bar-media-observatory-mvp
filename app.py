@@ -593,12 +593,12 @@ def _enhance_and_translate_items(items):
             model="claude-haiku-4-5-20251001",
             max_tokens=4096,
             messages=[{"role": "user", "content": (
-                "For each numbered article from a bar association website:\n"
-                "1. Suggest an improved title in the ORIGINAL language (fix truncation/garbling; keep if already good)\n"
-                "2. Write a 1-sentence snippet in the ORIGINAL language summarising the article "
-                "(use context; write empty string if context is insufficient)\n"
-                "3. Translate the improved title to English\n"
-                "4. Translate the improved snippet to English (empty string if snippet is empty)\n\n"
+                "Process each numbered article INDEPENDENTLY. Each article may be in a different language.\n\n"
+                "For each article:\n"
+                "1. [title] Detect the language of THAT article's input title. Write an improved title in that same language (fix truncation/garbling; keep if already good).\n"
+                "2. [snippet] Write a 1-sentence summary in the same language as that article's title (empty string if context is insufficient).\n"
+                "3. [title_en] Write the English translation of the improved title. This field is ALWAYS in English (en-GB), never in Romanian, German, Hungarian, or any other language.\n"
+                "4. [snippet_en] Write the English translation of the snippet. This field is ALWAYS in English (empty string if snippet is empty).\n\n"
                 "Return ONLY in this exact format, four lines per article:\n"
                 "[N] title: ...\n"
                 "[N] snippet: ...\n"
