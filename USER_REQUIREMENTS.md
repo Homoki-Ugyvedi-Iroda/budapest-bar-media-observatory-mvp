@@ -93,6 +93,21 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
 - Newsletter and translations are downloaded via FTP when needed
 - All drafting and translation steps are logged
 
+### G) Sites Editor
+
+- Accessible from the dashboard ("Forráslista-szerkesztő" button) and top navigation bar
+- Edits `sites.yaml` — both the sites list and the keywords section
+- **Before every write**, a timestamped backup is created: `sites.yaml.bak.YYYYMMDDHHMMSS`
+- **Sites:**
+  - Each site shows editable fields: URL, short name, full name, language code, and all five CSS selectors (`items`, `title`, `link`, `date`, `snippet`) as plain text inputs (empty = not set)
+  - Each site has its own "Mentés" button (saves that site only) and a "Törlés" button (with JS confirmation)
+  - "Új weboldal hozzáadása" form at the bottom adds a new entry
+- **Keywords:**
+  - Global keywords displayed as a textarea (one per line); saved on "Kulcsszavak mentése"
+  - Per-language translated keywords displayed as individual textareas (one per line)
+  - New language can be added by entering a language code and keywords (comma- or newline-separated)
+  - Existing language keyword lists can be amended; language entries cannot be deleted through the UI
+
 ### E) Editor
 
 - Accessible from the dashboard ("Szerkesztő" button) and from the top navigation bar
@@ -145,6 +160,11 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
 | `GET /downloads/<date>/content` | Download full content directory as zip |
 | `POST /manual-item/check` | Step 1: extract title/snippet from uploaded file, save to temp/, show preview |
 | `POST /manual-item/add` | Step 2: confirm/edit preview, move temp file, append item to `tosummarize_*.yaml` |
+| `GET /sites-editor` | Sites editor: edit sites list and keywords in `sites.yaml` |
+| `POST /sites-editor/save-site/<idx>` | Save edits for one site entry |
+| `POST /sites-editor/add-site` | Add a new site entry |
+| `POST /sites-editor/delete-site/<idx>` | Delete a site entry |
+| `POST /sites-editor/save-keywords` | Save global and translated keywords |
 | `GET /editor` | Editor selection page: list all `tosummarize_*.yaml` files |
 | `GET /editor/<date>` | Editor page for a specific date |
 | `POST /editor/<date>/save-items` | Save inline edits (title, snippet, keywords) to tosummarize yaml |

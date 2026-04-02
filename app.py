@@ -543,6 +543,125 @@ def download_content_dir(item_date):
                      mimetype="application/zip")
 
 
+# --- Sites editor ---
+
+def _backup_sites_yaml():
+    import shutil
+    from datetime import datetime
+    ts = datetime.now().strftime("%Y%m%d%H%M%S")
+    shutil.copy2("sites.yaml", f"sites.yaml.bak.{ts}")
+
+
+def _parse_keywords(raw):
+    return [kw.strip() for kw in re.split(r"[,\n]", raw) if kw.strip()]
+
+
+def _read_sites_config():
+    with open("sites.yaml", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def _write_sites_config(config):
+    _backup_sites_yaml()
+    with open("sites.yaml", "w", encoding="utf-8") as f:
+        yaml.dump(config, f, allow_unicode=True, sort_keys=False,
+                  default_flow_style=False)
+
+
+@app.route("/sites-editor")
+@login_required
+def sites_editor():
+    config = _read_sites_config()
+    return render_template("sites_editor.html",
+        sites=config.get("sites", []),
+        global_kw=config.get("keywords", {}).get("global", []),
+        translated=config.get("keywords", {}).get("translated", {}))
+
+
+@app.route("/sites-editor/save-site/<int:idx>", methods=["POST"])
+@login_required
+def sites_save_site(idx):
+    config = _read_sites_config()
+    sites = config.get("sites", [])
+    if idx < 0 or idx >= len(sites):
+        flash("Érvénytelen index.", "error")
+        return redirect(url_for("sites_editor"))
+    sel = {k: request.form.get(f"sel_{k}", "").strip()
+           for k in ("items", "title", "link", "date", "snippet")}
+    sel = {k: v for k, v in sel.items() if v}
+    sites[idx].update({
+        "url": request.form.get("url", "").strip(),
+        "short_name": request.form.get("short_name", "").strip(),
+        "full_name": request.form.get("full_name", "").strip(),
+        "language": request.form.get("language", "").strip(),
+        "selectors": sel,
+    })
+    _write_sites_config(config)
+    logging.info(f"Sites editor: mentve — {sites[idx]['short_name']}")
+    flash(f"Mentve: {sites[idx]['short_name']}")
+    return redirect(url_for("sites_editor"))
+
+
+@app.route("/sites-editor/add-site", methods=["POST"])
+@login_required
+def sites_add_site():
+    url = request.form.get("url", "").strip()
+    if not url:
+        flash("URL megadása kötelező.", "error")
+        return redirect(url_for("sites_editor"))
+    config = _read_sites_config()
+    sel = {k: request.form.get(f"new_sel_{k}", "").strip()
+           for k in ("items", "title", "link", "date", "snippet")}
+    sel = {k: v for k, v in sel.items() if v}
+    config.setdefault("sites", []).append({
+        "url": url,
+        "short_name": request.form.get("short_name", "").strip(),
+        "full_name": request.form.get("full_name", "").strip(),
+        "language": request.form.get("language", "").strip(),
+        "selectors": sel,
+    })
+    _write_sites_config(config)
+    logging.info(f"Sites editor: új oldal hozzáadva — {url}")
+    flash(f"Hozzáadva: {url}")
+    return redirect(url_for("sites_editor"))
+
+
+@app.route("/sites-editor/delete-site/<int:idx>", methods=["POST"])
+@login_required
+def sites_delete_site(idx):
+    config = _read_sites_config()
+    sites = config.get("sites", [])
+    if idx < 0 or idx >= len(sites):
+        flash("Érvénytelen index.", "error")
+        return redirect(url_for("sites_editor"))
+    removed = sites.pop(idx)
+    _write_sites_config(config)
+    logging.info(f"Sites editor: törölve — {removed.get('short_name', '')}")
+    flash(f"Törölve: {removed.get('short_name', '')}")
+    return redirect(url_for("sites_editor"))
+
+
+@app.route("/sites-editor/save-keywords", methods=["POST"])
+@login_required
+def sites_save_keywords():
+    config = _read_sites_config()
+    config.setdefault("keywords", {})
+    config["keywords"]["global"] = _parse_keywords(
+        request.form.get("global_keywords", ""))
+    translated = config["keywords"].get("translated", {})
+    for lang in list(translated.keys()):
+        translated[lang] = _parse_keywords(request.form.get(f"lang_{lang}", ""))
+    new_lang = request.form.get("new_lang_code", "").strip().lower()
+    new_kw = request.form.get("new_lang_keywords", "").strip()
+    if new_lang and new_kw:
+        translated[new_lang] = _parse_keywords(new_kw)
+    config["keywords"]["translated"] = translated
+    _write_sites_config(config)
+    logging.info("Sites editor: kulcsszavak mentve")
+    flash("Kulcsszavak mentve.")
+    return redirect(url_for("sites_editor"))
+
+
 # --- Helpers ---
 
 def _safe_filename(url):

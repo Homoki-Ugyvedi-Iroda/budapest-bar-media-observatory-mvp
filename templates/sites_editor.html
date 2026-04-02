@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Forráslista-szerkesztő{% endblock %}
+{% block content %}
+<h1>Forráslista-szerkesztő</h1>
+<p style="font-size:.9em;color:#888">Minden mentés előtt automatikus biztonsági másolat készül a sites.yaml fájlról.</p>
+
+<p style="margin:12px 0 24px">
+  <a href="#uj-weboldal">↓ Új weboldal hozzáadása</a>
+  &nbsp;&nbsp;
+  <a href="#kulcsszavak">↓ Kulcsszavak szerkesztése</a>
+</p>
+
+{# ------------------------------------------------------------------ #}
+{# SITES #}
+{# ------------------------------------------------------------------ #}
+<h2 id="weboldalak" style="border-top:3px solid #0055aa;padding-top:16px">Weboldalak ({{ sites|length }})</h2>
+
+{% for site in sites %}
+{% set i = loop.index0 %}
+<div style="border:1px solid #ddd;border-radius:4px;padding:14px 16px;margin-bottom:14px">
+  <form method="post" action="{{ url_for('sites_save_site', idx=i) }}">
+    <table style="border-spacing:4px 6px;width:100%">
+      <tr>
+        <td style="width:120px"><label>URL</label></td>
+        <td colspan="3"><input name="url" type="url" value="{{ site.url }}" style="width:100%" required></td>
+      </tr>
+      <tr>
+        <td><label>Rövid név</label></td>
+        <td style="width:120px"><input name="short_name" type="text" value="{{ site.short_name }}" style="width:100%"></td>
+        <td style="width:80px;padding-left:12px"><label>Nyelv</label></td>
+        <td style="width:60px"><input name="language" type="text" value="{{ site.language }}" style="width:60px" maxlength="5"></td>
+      </tr>
+      <tr>
+        <td><label>Teljes név</label></td>
+        <td colspan="3"><input name="full_name" type="text" value="{{ site.full_name }}" style="width:100%"></td>
+      </tr>
+      <tr>
+        <td style="vertical-align:top;padding-top:8px"><label>Szelektorok</label></td>
+        <td colspan="3">
+          <table style="border-spacing:4px 4px">
+            {% for key in ("items", "title", "link", "date", "snippet") %}
+            <tr>
+              <td style="width:60px;font-size:.85em;color:#555">{{ key }}</td>
+              <td><input name="sel_{{ key }}" type="text" value="{{ (site.selectors or {})[key] if (site.selectors or {}).get(key) else '' }}" style="width:420px" placeholder="CSS szelektor (opcionális)"></td>
+            </tr>
+            {% endfor %}
+          </table>
+        </td>
+      </tr>
+    </table>
+    <div style="margin-top:8px;display:flex;gap:8px">
+      <button type="submit" class="btn btn-secondary" style="font-size:.85em;padding:5px 12px">Mentés</button>
+    </div>
+  </form>
+  <form method="post" action="{{ url_for('sites_delete_site', idx=i) }}" style="display:inline;margin-top:6px"
+        onsubmit="return confirm('Biztosan törli: {{ site.short_name }} ({{ site.url }})?')">
+    <button type="submit" class="btn btn-danger" style="font-size:.85em;padding:5px 12px">Törlés</button>
+  </form>
+</div>
+{% endfor %}
+
+{# ------------------------------------------------------------------ #}
+{# ADD NEW SITE #}
+{# ------------------------------------------------------------------ #}
+<h2 id="uj-weboldal" style="border-top:3px solid #0055aa;padding-top:16px;margin-top:32px">Új weboldal hozzáadása</h2>
+<div style="border:1px solid #ddd;border-radius:4px;padding:14px 16px">
+  <form method="post" action="{{ url_for('sites_add_site') }}">
+    <table style="border-spacing:4px 6px;width:100%">
+      <tr>
+        <td style="width:120px"><label>URL</label></td>
+        <td colspan="3"><input name="url" type="url" style="width:100%" required placeholder="https://..."></td>
+      </tr>
+      <tr>
+        <td><label>Rövid név</label></td>
+        <td style="width:120px"><input name="short_name" type="text" style="width:100%" placeholder="pl. NRA"></td>
+        <td style="width:80px;padding-left:12px"><label>Nyelv</label></td>
+        <td style="width:60px"><input name="language" type="text" style="width:60px" maxlength="5" placeholder="(például bg)"></td>
+      </tr>
+      <tr>
+        <td><label>Teljes név</label></td>
+        <td colspan="3"><input name="full_name" type="text" style="width:100%" placeholder="A szervezet teljes neve"></td>
+      </tr>
+      <tr>
+        <td style="vertical-align:top;padding-top:8px"><label>Szelektorok</label></td>
+        <td colspan="3">
+          <table style="border-spacing:4px 4px">
+            {% for key in ("items", "title", "link", "date", "snippet") %}
+            <tr>
+              <td style="width:60px;font-size:.85em;color:#555">{{ key }}</td>
+              <td><input name="new_sel_{{ key }}" type="text" style="width:420px" placeholder="CSS szelektor (opcionális)"></td>
+            </tr>
+            {% endfor %}
+          </table>
+        </td>
+      </tr>
+    </table>
+    <button type="submit" class="btn btn-secondary" style="margin-top:8px;font-size:.85em;padding:5px 12px">Hozzáadás</button>
+  </form>
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# KEYWORDS #}
+{# ------------------------------------------------------------------ #}
+<h2 id="kulcsszavak" style="border-top:3px solid #0055aa;padding-top:16px;margin-top:32px">Kulcsszavak</h2>
+<form method="post" action="{{ url_for('sites_save_keywords') }}">
+
+  <h3 style="font-size:1em;margin-bottom:4px">Globális kulcsszavak</h3>
+  <p style="font-size:.85em;color:#888;margin:0 0 4px">Soronként vagy vesszővel elválasztva.</p>
+  <textarea name="global_keywords" rows="6" style="width:100%;max-width:500px">{{ global_kw | join('\n') }}</textarea>
+
+  <h3 style="font-size:1em;margin-top:20px;margin-bottom:4px">Lefordított kulcsszavak nyelvenkén</h3>
+  <p style="font-size:.85em;color:#888;margin:0 0 12px">Soronként vagy vesszővel elválasztva.</p>
+
+  <table style="border-spacing:0;border-collapse:collapse;width:100%">
+    {% for lang, kws in translated.items() %}
+    <tr style="vertical-align:top">
+      <td style="padding:6px 12px 6px 0;width:50px;font-weight:bold">{{ lang }}</td>
+      <td style="padding:6px 0">
+        <textarea name="lang_{{ lang }}" rows="4" style="width:100%;max-width:460px">{{ kws | join('\n') }}</textarea>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <h3 style="font-size:1em;margin-top:20px;margin-bottom:4px">Új nyelv hozzáadása</h3>
+  <table style="border-spacing:4px 6px">
+    <tr>
+      <td><label>Nyelv ISO 639-2 kódja</label></td>
+      <td><input name="new_lang_code" type="text" maxlength="5" style="width:60px" placeholder="(például lv)></td>
+    </tr>
+    <tr>
+      <td style="vertical-align:top"><label>Kulcsszavak az adott nyelven</label></td>
+      <td><textarea name="new_lang_keywords" rows="4" style="width:460px" placeholder="Soronként vagy vesszővel elválasztva"></textarea></td>
+    </tr>
+  </table>
+
+  <button type="submit" class="btn btn-secondary" style="margin-top:12px;font-size:.85em;padding:5px 12px">Kulcsszavak mentése</button>
+</form>
+
+<p style="margin-top:24px"><a href="{{ url_for('dashboard') }}">&larr; Vissza az irányítópultra</a></p>
+{% endblock %}

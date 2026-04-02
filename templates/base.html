@@ -38,8 +38,12 @@
   {% if session.logged_in %}
   <nav>
     <a href="{{ url_for('dashboard') }}">Irányítópult</a>
-    <a href="{{ url_for('review_list') }}">Áttekintés</a>
-    <a href="{{ url_for('editor_select') }}">Szerkesztő</a>
+    <a href="{{ url_for('review_list') }}">Összes forrásletöltés listája</a>
+    <a href="{{ url_for('review_pending') }}">Feldolgozatlan forrásletöltések</a>
+    <a href="{{ url_for('editor_select') }}">Feldolgozatlan összefoglalások</a>
+    <a href="{{ url_for('draft_select') }}">Hírlevél készítő</a>
+    <a href="{{ url_for('downloads') }}">Letöltés</a>
+    <a href="{{ url_for('sites_editor') }}">Forráslista-szerkesztő</a>
     <span class="spacer"></span>
     <a href="{{ url_for('logout') }}" class="btn btn-danger" style="font-size:.85em;padding:5px 12px">Kijelentkezés</a>
   </nav>
