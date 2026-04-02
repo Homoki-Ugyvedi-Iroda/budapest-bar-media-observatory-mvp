@@ -1,6 +1,7 @@
 import os
 import re
 import glob
+import uuid
 import logging
 import functools
 from datetime import date
@@ -63,8 +64,9 @@ def logout():
 @login_required
 def dashboard():
     parsed_files = sorted(glob.glob("parsed_*.yaml"), reverse=True)
-    today = date.today().strftime("%Y%m%d")
-    return render_template("dashboard.html", parsed_files=parsed_files, today=today)
+    tosummarize_files = sorted(glob.glob("tosummarize_*.yaml"), reverse=True)
+    return render_template("dashboard.html", parsed_files=parsed_files,
+                           tosummarize_files=tosummarize_files)
 
 
 # --- Parser ---
@@ -176,6 +178,21 @@ def _extract_title(content, is_html):
     return "Cím nélkül"
 
 
+def _extract_snippet(content, is_html):
+    if is_html:
+        soup = BeautifulSoup(content, "html.parser")
+        for p in soup.find_all("p"):
+            text = p.get_text(strip=True)
+            if len(text) > 30:
+                return text[:300]
+    else:
+        for line in content.splitlines():
+            line = line.strip()
+            if len(line) > 30:
+                return line[:300]
+    return ""
+
+
 def _match_source(url):
     from urllib.parse import urlparse
     domain = urlparse(url).netloc.lower().lstrip("www.")
@@ -188,32 +205,74 @@ def _match_source(url):
     return domain.split(".")[0].upper()[:10]
 
 
-@app.route("/manual-item", methods=["POST"])
+@app.route("/manual-item/check", methods=["POST"])
 @login_required
-def add_manual_item():
-    item_date = request.form.get("date", date.today().strftime("%Y%m%d")).strip()
+def manual_item_check():
+    item_date = request.form.get("item_date", "").strip()
     url = request.form.get("url", "").strip()
     file = request.files.get("file")
 
-    if not url or not file:
-        flash("URL és fájl megadása kötelező.", "error")
+    if not item_date or not url or not file:
+        flash("Minden mező kitöltése kötelező.", "error")
+        return redirect(url_for("dashboard"))
+
+    tosummarize_path = f"tosummarize_{item_date}.yaml"
+    existing = []
+    if os.path.exists(tosummarize_path):
+        with open(tosummarize_path, encoding="utf-8") as f:
+            existing = yaml.safe_load(f) or []
+    if any(i["url"] == url for i in existing):
+        flash(f"Ez az URL már szerepel: {tosummarize_path}.", "error")
         return redirect(url_for("dashboard"))
 
     raw = file.read().decode("utf-8", errors="replace")
-    is_html = file.filename.lower().endswith(".html")
+    fname = file.filename.lower()
+    is_html = fname.endswith(".html") or fname.endswith(".htm")
     title = _extract_title(raw, is_html)
+    snippet = _extract_snippet(raw, is_html)
     source = _match_source(url)
 
-    trans_dir = f"content_{item_date}/translations"
-    os.makedirs(trans_dir, exist_ok=True)
-    text = BeautifulSoup(raw, "html.parser").get_text(separator="\n", strip=True) if is_html else raw
-    with open(os.path.join(trans_dir, _safe_filename(url) + "_en.txt"), "w", encoding="utf-8") as f:
-        f.write(text)
+    os.makedirs("temp", exist_ok=True)
+    temp_id = str(uuid.uuid4())
+    with open(os.path.join("temp", temp_id), "w", encoding="utf-8") as f:
+        f.write(raw)
+
+    return render_template("manual_item_check.html",
+        item_date=item_date, url=url, source=source,
+        title=title, snippet=snippet, keywords="manual",
+        temp_id=temp_id, file_type="html" if is_html else "txt")
+
+
+@app.route("/manual-item/add", methods=["POST"])
+@login_required
+def manual_item_add():
+    item_date = request.form.get("item_date", "").strip()
+    url = request.form.get("url", "").strip()
+    source = request.form.get("source", "").strip()
+    title = request.form.get("title", "").strip()
+    snippet = request.form.get("snippet", "").strip()
+    keywords_raw = request.form.get("keywords", "manual").strip()
+    temp_id = request.form.get("temp_id", "").strip()
+    file_type = request.form.get("file_type", "txt")
+    is_html = file_type == "html"
+
+    keywords = [k.strip() for k in keywords_raw.split(",") if k.strip()] or ["manual"]
+
+    temp_path = os.path.join("temp", temp_id)
+    if os.path.exists(temp_path):
+        trans_dir = f"content_{item_date}/translations"
+        os.makedirs(trans_dir, exist_ok=True)
+        with open(temp_path, encoding="utf-8") as f:
+            raw = f.read()
+        text = BeautifulSoup(raw, "html.parser").get_text(separator="\n", strip=True) if is_html else raw
+        with open(os.path.join(trans_dir, _safe_filename(url) + "_en.txt"), "w", encoding="utf-8") as f:
+            f.write(text)
+        os.remove(temp_path)
 
     item = {
         "source": source, "title": title, "url": url,
-        "date": item_date, "type": "html" if is_html else "txt",
-        "matched_keywords": ["manual"], "snippet": "", "manual": True,
+        "date": item_date, "type": file_type,
+        "matched_keywords": keywords, "snippet": snippet, "manual": True,
     }
 
     tosummarize_path = f"tosummarize_{item_date}.yaml"

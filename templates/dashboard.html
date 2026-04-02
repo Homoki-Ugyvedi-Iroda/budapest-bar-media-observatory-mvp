@@ -3,34 +3,45 @@
 {% block content %}
 <h1>Budapesti Ügyvédi Kamara Médiafigyelő</h1>
 
-<h2>Actions</h2>
+<h2>Műveletek</h2>
 <form method="post" action="{{ url_for('run_parse') }}" style="display:inline">
-  <button type="submit" class="btn">Forrásletöltő futtatása</button>
+  <button type="submit" class="btn">Forrásletöltő futtatása ("parser")</button>
 </form>
 &nbsp;
 <form method="post" action="{{ url_for('run_draft') }}" style="display:inline">
-  <button type="submit" class="btn btn-secondary">Hírlevél készítő futtatása</button>
+  <button type="submit" class="btn btn-secondary">Hírlevél készítő futtatása ("drafter")</button>
 </form>
 
 <h2>Kézi tétel hozzáadása</h2>
-<p style="font-size:0.9em;color:#888">Angol nyelvű HTML vagy TXT fájl feltöltése. A címet és a forrást a gép nyeri ki.</p>
-<form method="post" action="{{ url_for('add_manual_item') }}" enctype="multipart/form-data">
+{% if tosummarize_files %}
+<p style="font-size:0.9em;color:#888">Válasszon összefoglalási fájlt, adja meg az URL-t és töltse fel a lefordított szöveget.</p>
+<form method="post" action="{{ url_for('manual_item_check') }}" enctype="multipart/form-data">
   <table style="border-spacing:4px 6px">
     <tr>
-      <td><label>Dátum</label></td>
-      <td><input name="date" type="text" value="{{ today }}" placeholder="ÉÉÉÉHHNN" style="width:110px"></td>
+      <td><label>Összefoglalási fájl</label></td>
+      <td>
+        <select name="item_date" style="width:220px">
+          {% for f in tosummarize_files %}
+          {% set d = f.replace('tosummarize_', '').replace('.yaml', '') %}
+          <option value="{{ d }}">{{ d[:4] }}-{{ d[4:6] }}-{{ d[6:] }}</option>
+          {% endfor %}
+        </select>
+      </td>
     </tr>
     <tr>
-      <td><label>URL</label></td>
+      <td><label>Eredeti weboldal címe</label></td>
       <td><input name="url" type="url" style="width:360px" required></td>
     </tr>
     <tr>
-      <td><label>Fájl</label></td>
-      <td><input name="file" type="file" accept=".txt,.html" required></td>
+      <td><label>Lefordított szöveg az összefoglaláshoz (html vagy text)</label></td>
+      <td><input name="file" type="file" accept=".txt,.html,.htm" required></td>
     </tr>
   </table>
-  <button type="submit" class="btn btn-secondary" style="margin-top:6px">Hozzáadás</button>
+  <button type="submit" class="btn btn-secondary" style="margin-top:6px">Ellenőrzés</button>
 </form>
+{% else %}
+<p style="color:#888">Nincs elérhető összefoglalási fájl. Először futtassa az áttekintést.</p>
+{% endif %}
 
 <h2>Lefutott forrásletöltő munkamenetek</h2>
 {% if parsed_files %}

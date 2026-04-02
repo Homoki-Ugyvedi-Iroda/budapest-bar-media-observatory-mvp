@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Kézi tétel ellenőrzése{% endblock %}
+{% block content %}
+<h1>Kézi tétel ellenőrzése</h1>
+<p style="font-size:0.9em;color:#888">Ellenőrizze és szükség esetén módosítsa az adatokat, majd kattintson a „Hozzáadás" gombra.</p>
+
+<form method="post" action="{{ url_for('manual_item_add') }}">
+  <input type="hidden" name="item_date" value="{{ item_date }}">
+  <input type="hidden" name="url" value="{{ url }}">
+  <input type="hidden" name="source" value="{{ source }}">
+  <input type="hidden" name="temp_id" value="{{ temp_id }}">
+  <input type="hidden" name="file_type" value="{{ file_type }}">
+
+  <table style="border-spacing:4px 8px; width:100%; max-width:700px">
+    <tr>
+      <td style="width:180px; vertical-align:top"><label>Összefoglalási fájl</label></td>
+      <td><strong>tosummarize_{{ item_date }}.yaml</strong></td>
+    </tr>
+    <tr>
+      <td style="vertical-align:top"><label>Eredeti weboldal</label></td>
+      <td><a href="{{ url }}" target="_blank">{{ url }}</a></td>
+    </tr>
+    <tr>
+      <td style="vertical-align:top"><label>Forrás (automatikus)</label></td>
+      <td><strong>{{ source }}</strong></td>
+    </tr>
+    <tr>
+      <td style="vertical-align:top"><label for="title">Cím</label></td>
+      <td><input name="title" id="title" type="text" value="{{ title }}" style="width:100%" required></td>
+    </tr>
+    <tr>
+      <td style="vertical-align:top"><label for="snippet">Kivonat</label></td>
+      <td><textarea name="snippet" id="snippet" rows="3" style="width:100%">{{ snippet }}</textarea></td>
+    </tr>
+    <tr>
+      <td style="vertical-align:top"><label for="keywords">Kulcsszavak</label></td>
+      <td>
+        <input name="keywords" id="keywords" type="text" value="{{ keywords }}" style="width:100%">
+        <small style="color:#888">Vesszővel elválasztva</small>
+      </td>
+    </tr>
+  </table>
+
+  <div style="margin-top:14px">
+    <button type="submit" class="btn">Hozzáadás</button>
+    &nbsp;
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Mégsem</a>
+  </div>
+</form>
+{% endblock %}

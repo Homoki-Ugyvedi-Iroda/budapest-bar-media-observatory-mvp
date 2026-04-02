@@ -64,18 +64,17 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
   - Triggers batch download and batch translation for all checked items
   - Logs all actions to `logs/review.log`
 
-### D) Manual Item & Translation Upload
+### D) Manual Item
 
 - Dashboard provides an "Add Manual Item" form for content not found by the parser (e.g. paywalled articles, LinkedIn posts copied to HTML, manually obtained documents)
-- Fields: date (YYYYMMDD), source (dropdown from `sites.yaml`), title, URL
-- Item is appended directly to `tosummarize_[date].yaml`, bypassing the review step
-- Duplicate URLs within the same file are rejected
-- On success, the UI shows the expected translation filename for reference
-- Dashboard also provides an "Upload Translation" form:
-  - Fields: date, URL (used to derive filename), file (`.txt` or `.html`)
-  - File is saved to `content_[date]/translations/{safe_filename(url)}_en.txt`
-  - The drafter picks it up automatically as the content source for that item
-- Manual items are assumed to be in English — no automatic translation is applied
+- The user selects an existing `tosummarize_[date].yaml` from a dropdown; the date is derived from that selection (not entered manually)
+- Fields: tosummarize file (dropdown), URL ("Eredeti weboldal címe"), file upload ("Lefordított szöveg az összefoglaláshoz") — accepts `.html`, `.htm`, `.txt`
+- Two-step submission:
+  1. **Ellenőrzés** — server extracts title (from `<title>`, `<h1>`, or first non-empty line) and snippet (from first substantial `<p>` or text line); saves uploaded file to `temp/`; shows preview page with editable title, snippet, and keywords fields
+  2. **Hozzáadás** — user confirms/edits preview data; server moves temp file to `content_[date]/translations/`, appends item to `tosummarize_[date].yaml`
+- Duplicate URLs within the same file are rejected at the Ellenőrzés step
+- The uploaded file is treated as the English translation for the drafter
+- Keywords are comma-separated; default is `manual`
 - All actions logged to `logs/review.log`
 
 ### C) Drafter Tool
@@ -105,8 +104,8 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
 | `GET /review/<date>` | Review items for a parse run |
 | `POST /review/<date>/save` | Save YAML, trigger batch download + translation |
 | `POST /draft` | Run drafter on latest unprocessed `tosummarize_*.yaml` |
-| `POST /manual-item` | Add manual item directly to `tosummarize_*.yaml` |
-| `POST /upload-translation` | Upload English translation file to `content_*/translations/` |
+| `POST /manual-item/check` | Step 1: extract title/snippet from uploaded file, save to temp/, show preview |
+| `POST /manual-item/add` | Step 2: confirm/edit preview, move temp file, append item to `tosummarize_*.yaml` |
 
 ## Authentication & Security
 
