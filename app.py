@@ -66,7 +66,9 @@ def logout():
 @login_required
 def dashboard():
     parsed_files = sorted(glob.glob("parsed_*.yaml"), reverse=True)
-    return render_template("dashboard.html", parsed_files=parsed_files)
+    tosummarize_files = sorted(glob.glob("tosummarize_*.yaml"), reverse=True)
+    return render_template("dashboard.html", parsed_files=parsed_files,
+                           tosummarize_files=tosummarize_files)
 
 
 # --- Parser ---
@@ -86,11 +88,30 @@ def run_parse():
 
 # --- Review ---
 
+def _review_entries(files):
+    entries = []
+    for f in files:
+        d = f.replace("parsed_", "").replace(".yaml", "")
+        entries.append({"file": f, "date": d,
+                        "pending": not os.path.exists(f"tosummarize_{d}.yaml")})
+    return entries
+
+
 @app.route("/review")
 @login_required
 def review_list():
     files = sorted(glob.glob("parsed_*.yaml"), reverse=True)
-    return render_template("review_list.html", files=files)
+    return render_template("review_list.html",
+                           entries=_review_entries(files), pending_only=False)
+
+
+@app.route("/review/pending")
+@login_required
+def review_pending():
+    files = sorted(glob.glob("parsed_*.yaml"), reverse=True)
+    entries = [e for e in _review_entries(files) if e["pending"]]
+    return render_template("review_list.html",
+                           entries=entries, pending_only=True)
 
 
 @app.route("/review/<date>")
@@ -107,15 +128,7 @@ def review(date):
     for i, item in enumerate(items):
         item["idx"] = i
 
-    # Batch-translate titles and snippets in one call (interleaved: title[0], snippet[0], ...)
-    all_texts = []
-    for item in items:
-        all_texts.append(item.get("title", ""))
-        all_texts.append(item.get("snippet", ""))
-    translated, translation_error = _translate_snippets(all_texts)
-    for i, item in enumerate(items):
-        item["title_en"] = translated[i * 2]
-        item["snippet_en"] = translated[i * 2 + 1]
+    translation_error = _enhance_and_translate_items(items)
 
     grouped = {}
     for item in items:
@@ -123,6 +136,19 @@ def review(date):
 
     return render_template("review.html", date=date, grouped=grouped,
                            translation_error=translation_error)
+
+
+@app.route("/review/<date>/delete", methods=["POST"])
+@login_required
+def review_delete(date):
+    path = f"parsed_{date}.yaml"
+    if os.path.exists(path):
+        os.remove(path)
+        logging.info(f"Parsed file deleted: {path}")
+        flash(f"Törölve: {path}")
+    else:
+        flash("Fájl nem található.", "error")
+    return redirect(url_for("review_list"))
 
 
 @app.route("/review/<date>/save", methods=["POST"])
@@ -146,6 +172,12 @@ def review_save(date):
         idx = str(i)
         if idx not in selected_idxs:
             continue
+        enh_title = request.form.get(f"enhanced_title_{i}", "").strip()
+        enh_snippet = request.form.get(f"enhanced_snippet_{i}", "").strip()
+        if enh_title:
+            item["title"] = enh_title
+        if enh_snippet:
+            item["snippet"] = enh_snippet
         to_summarize.append(item)
         if idx in download_idxs:
             _download_content(item, f"{content_dir}/downloaded")
@@ -543,41 +575,69 @@ def _get_size_kb(url):
         return None
 
 
-def _translate_snippets(texts):
-    """Batch-translate all non-empty texts to English in one Claude call.
-    Returns (results_list, error_message_or_None)."""
-    non_empty = [(i, s) for i, s in enumerate(texts) if s and s.strip()]
-    result = [""] * len(texts)
-    if not non_empty:
-        return result, None
-
-    numbered = "\n\n".join(f"[{i}] {s[:1000]}" for i, s in non_empty)
+def _enhance_and_translate_items(items):
+    """Use Claude Haiku to improve titles/snippets and translate them to English.
+    Adds enhanced_title, enhanced_snippet, title_en, snippet_en keys to each item in-place.
+    Returns error message string or None."""
+    if not items:
+        return None
+    numbered = "\n\n".join(
+        f"[{item['idx']}] URL: {item.get('url', '')}\n"
+        f"    Title: {(item.get('title', '') or '')[:200]}\n"
+        f"    Context: {(item.get('snippet', '') or '')[:300]}"
+        for item in items
+    )
     try:
         client = anthropic.Anthropic()
         msg = client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-haiku-4-5-20251001",
             max_tokens=4096,
             messages=[{"role": "user", "content": (
-                "Translate each numbered snippet to English. "
-                "Return only translations in the same [N] format, one per line. "
-                "No extra text.\n\n" + numbered
+                "For each numbered article from a bar association website:\n"
+                "1. Suggest an improved title in the ORIGINAL language (fix truncation/garbling; keep if already good)\n"
+                "2. Write a 1-sentence snippet in the ORIGINAL language summarising the article "
+                "(use context; write empty string if context is insufficient)\n"
+                "3. Translate the improved title to English\n"
+                "4. Translate the improved snippet to English (empty string if snippet is empty)\n\n"
+                "Return ONLY in this exact format, four lines per article:\n"
+                "[N] title: ...\n"
+                "[N] snippet: ...\n"
+                "[N] title_en: ...\n"
+                "[N] snippet_en: ...\n\n"
+                + numbered
             )}],
         )
+        enhanced = {}
         for line in msg.content[0].text.splitlines():
             line = line.strip()
-            if line.startswith("[") and "]" in line:
-                idx_str, _, text = line.partition("] ")
-                try:
-                    result[int(idx_str[1:])] = text.strip()
-                except (ValueError, IndexError):
-                    pass
-        return result, None
-    except anthropic.APIError as e:
-        logging.warning(f"Anthropic API error during translation: {e}")
-        return result, str(e)
-    except Exception as e:
-        logging.warning(f"Translation failed: {e}")
-        return result, str(e)
+            if not line.startswith("["):
+                continue
+            bracket_end = line.find("]")
+            if bracket_end == -1:
+                continue
+            try:
+                idx = int(line[1:bracket_end])
+            except ValueError:
+                continue
+            rest = line[bracket_end + 1:].strip()
+            for key in ("title_en", "snippet_en", "title", "snippet"):
+                if rest.startswith(key + ":"):
+                    enhanced.setdefault(idx, {})[key] = rest[len(key) + 1:].strip()
+                    break
+        for item in items:
+            idx = item["idx"]
+            e = enhanced.get(idx, {})
+            item["enhanced_title"] = e.get("title") or item.get("title", "")
+            item["enhanced_snippet"] = e.get("snippet", "")
+            item["title_en"] = e.get("title_en", "")
+            item["snippet_en"] = e.get("snippet_en", "")
+        return None
+    except anthropic.APIError as ex:
+        logging.warning(f"Enhancement/translation API error: {ex}")
+        return str(ex)
+    except Exception as ex:
+        logging.warning(f"Enhancement/translation failed: {ex}")
+        return str(ex)
 
 
 def _download_content(item, dest_dir):

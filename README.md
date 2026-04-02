@@ -23,7 +23,7 @@ The parser can also run automatically on a schedule (e.g. weekly via PythonAnywh
 
 #### Step 2 — Review and select items
 
-1. On the dashboard, click the date of the latest parse run under **Lefutott forrásletöltő munkamenetek**
+1. On the dashboard, click **Feldolgozatlan forrásletöltések** to see only parse runs that have not yet been reviewed, or click a date under **Lefutott forrásletöltő munkamenetek** directly
 2. The review page shows all found articles grouped by source (bar association)
 3. Titles and snippets are automatically translated to English by Claude so you can quickly assess relevance
 4. For each article you want to include in the newsletter:
@@ -182,7 +182,7 @@ A parser ütemezetten is futtatható (pl. heti automatikus futás PythonAnywhere
 
 #### 2. lépés — Áttekintés és kijelölés
 
-1. A dashboardon kattints a legfrissebb parse-futás dátumára a **Lefutott forrásletöltő munkamenetek** listában
+1. A dashboardon kattints a **Feldolgozatlan forrásletöltések** gombra a még nem feldolgozott futások szűrt listájához, vagy kattints közvetlenül egy dátumra a **Lefutott forrásletöltő munkamenetek** listában
 2. Az áttekintő oldalon a találatok forrás (ügyvédi kamara) szerint csoportosítva jelennek meg
 3. A rendszer automatikusan angolra fordítja a cikkek kivonatát (Claude Sonnet segítségével) a gyors relevancia-elbírálás érdekében
 4. Minden hírlevélbe szánt tételnél:

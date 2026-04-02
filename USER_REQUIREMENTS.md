@@ -51,7 +51,9 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
 
 ### B) Review Tool (Flask web UI)
 
-- Lists available `parsed_[yyyymmdd].yaml` files for selection
+- Dashboard "Feldolgozatlan forrásletöltések" button links directly to the pending-only view
+- Lists available `parsed_[yyyymmdd].yaml` files for selection; each row shows a status badge: **feldolgozatlan** (yellow, no tosummarize yet) or **összefoglalva** (green, tosummarize exists)
+- Full list has a "Csak a feldolgozatlanok" button to switch to the filtered view
 - Items displayed grouped by source (bar association)
 - For each item:
   - Snippet (up to 1000 characters) auto-translated to English via Claude Sonnet for quick scanning
@@ -130,8 +132,10 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
 | `GET /logout` | Clear session |
 | `GET /` | Dashboard: "Run Parser" and "Run Drafter" buttons, links to review files |
 | `POST /parse` | Trigger parser manually |
-| `GET /review` | List available `parsed_*.yaml` files |
+| `GET /review` | List all `parsed_*.yaml` files with pending/summarised status badges |
+| `GET /review/pending` | List only `parsed_*.yaml` files with no corresponding `tosummarize_*.yaml` |
 | `GET /review/<date>` | Review items for a parse run |
+| `POST /review/<date>/delete` | Delete a `parsed_*.yaml` file |
 | `POST /review/<date>/save` | Save YAML, trigger batch download + translation |
 | `GET /draft` | Show selection page listing unprocessed `tosummarize_*.yaml` files |
 | `POST /draft/<date>` | Run drafter for the selected date |

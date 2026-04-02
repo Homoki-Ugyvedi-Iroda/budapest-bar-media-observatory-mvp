@@ -30,12 +30,20 @@
         {% for item in items %}
         <tr style="border-bottom:1px solid #eee;vertical-align:top">
           <td style="padding:8px 6px">
-            <strong>{{ item.title }}</strong>
-            {% if item.title_en and item.title_en != item.title %}
+            <input type="hidden" name="enhanced_title_{{ item.idx }}" value="{{ item.enhanced_title }}">
+            <input type="hidden" name="enhanced_snippet_{{ item.idx }}" value="{{ item.enhanced_snippet }}">
+            <strong>{{ item.enhanced_title or item.title }}</strong>
+            {% if item.enhanced_title and item.enhanced_title != item.title %}
+            <div style="margin-top:2px;font-size:.78em;color:#aaa">Eredeti: {{ item.title }}</div>
+            {% endif %}
+            {% if item.title_en and item.title_en != (item.enhanced_title or item.title) %}
             <div style="margin-top:2px;font-size:.85em;color:#666;font-style:italic">{{ item.title_en }}</div>
             {% endif %}
+            {% if item.enhanced_snippet %}
+            <div style="margin-top:4px;font-size:.88em;color:#444">{{ item.enhanced_snippet[:500] }}</div>
+            {% endif %}
             {% if item.snippet_en %}
-            <div style="margin-top:4px;font-size:.88em;color:#444">{{ item.snippet_en[:1000] }}</div>
+            <div style="margin-top:2px;font-size:.85em;color:#666;font-style:italic">{{ item.snippet_en[:500] }}</div>
             {% endif %}
           </td>
           <td style="padding:8px 6px;font-size:.88em;color:#666">

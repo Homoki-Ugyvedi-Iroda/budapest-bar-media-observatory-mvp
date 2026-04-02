@@ -8,11 +8,14 @@
   <button type="submit" class="btn">Forrásletöltő futtatása ("parser")</button>
 </form>
 &nbsp;
+<a href="{{ url_for('review_pending') }}" class="btn btn-secondary">Feldolgozatlan forrásletöltések</a>
+&nbsp;
 <a href="{{ url_for('draft_select') }}" class="btn btn-secondary">Hírlevél készítő ("drafter")</a>
 &nbsp;
-<a href="{{ url_for('editor_select') }}" class="btn btn-secondary">Szerkesztő</a>
+<a href="{{ url_for('editor_select') }}" class="btn btn-secondary">Feldolgozatlan összefoglalások</a>
 &nbsp;
-<a href="{{ url_for('downloads') }}" class="btn btn-secondary">Letöltések</a>
+<a href="{{ url_for('downloads') }}" class="btn btn-secondary">Letöltés</a>
+
 
 <h2>Lefutott forrásletöltő munkamenetek</h2>
 {% if parsed_files %}
@@ -28,4 +31,20 @@
 {% else %}
 <p style="color:#888">No parse runs yet.</p>
 {% endif %}
+
+<h2>Összefoglalási munkamenetek</h2>
+{% if tosummarize_files %}
+<ul>
+  {% for f in tosummarize_files %}
+  {% set d = f.replace('tosummarize_', '').replace('.yaml', '') %}
+  <li>
+    <a href="{{ url_for('editor', item_date=d) }}">{{ d[:4] }}-{{ d[4:6] }}-{{ d[6:] }}</a>
+    &mdash; {{ f }}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p style="color:#888">Nincs összefoglalási fájl.</p>
+{% endif %}
+
 {% endblock %}

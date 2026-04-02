@@ -1,15 +1,41 @@
 {% extends "base.html" %}
-{% block title %}Áttekintő – Budapesti Ügyvédi Kamara Médiafigyelő{% endblock %}
+{% block title %}{% if pending_only %}Feldolgozatlan munkamenetek{% else %}Forrásletöltő munkamenetek{% endif %} – Budapesti Ügyvédi Kamara Médiafigyelő{% endblock %}
 {% block content %}
-<h1>Lefutott forrásletöltő munkamenetek</h1>
-{% if files %}
-<ul>
-  {% for f in files %}
-  {% set d = f.replace('parsed_', '').replace('.yaml', '') %}
-  <li><a href="{{ url_for('review', date=d) }}">{{ d[:4] }}-{{ d[4:6] }}-{{ d[6:] }}</a></li>
+<h1>{% if pending_only %}Feldolgozatlan forrásletöltő munkamenetek{% else %}Lefutott forrásletöltő munkamenetek{% endif %}</h1>
+
+{% if not pending_only %}
+<p style="margin-bottom:12px">
+  <a href="{{ url_for('review_pending') }}" class="btn btn-secondary" style="font-size:.85em;padding:5px 10px">Csak a feldolgozatlanok</a>
+</p>
+{% endif %}
+
+{% if entries %}
+<table style="border-spacing:0;border-collapse:collapse">
+  {% for e in entries %}
+  <tr>
+    <td style="padding:5px 16px 5px 0">
+      <a href="{{ url_for('review', date=e.date) }}">{{ e.date[:4] }}-{{ e.date[4:6] }}-{{ e.date[6:] }}</a>
+      <span style="color:#aaa;font-size:.85em;margin-left:6px">{{ e.file }}</span>
+      {% if e.pending %}
+      <span style="margin-left:8px;font-size:.78em;background:#fff3cd;border:1px solid #ffc107;border-radius:3px;padding:1px 6px;color:#856404">feldolgozatlan</span>
+      {% else %}
+      <span style="margin-left:8px;font-size:.78em;background:#d4edda;border:1px solid #28a745;border-radius:3px;padding:1px 6px;color:#155724">összefoglalva</span>
+      {% endif %}
+    </td>
+    <td style="padding:5px 0">
+      <form method="post" action="{{ url_for('review_delete', date=e.date) }}" style="display:inline"
+            onsubmit="return confirm('Biztosan törli: {{ e.file }}?')">
+        <button type="submit" class="btn btn-danger" style="font-size:.8em;padding:3px 8px">Törlés</button>
+      </form>
+    </td>
+  </tr>
   {% endfor %}
-</ul>
+</table>
 {% else %}
-<p style="color:#888">Nincsenek végrehajtott forrásletöltő munkamenetek.</p>
+<p style="color:#888">{% if pending_only %}Nincs feldolgozatlan forrásletöltő munkamenet.{% else %}Nincsenek végrehajtott forrásletöltő munkamenetek.{% endif %}</p>
+{% endif %}
+
+{% if pending_only %}
+<p style="margin-top:16px"><a href="{{ url_for('review_list') }}">&larr; Összes munkamenet</a></p>
 {% endif %}
 {% endblock %}
