@@ -74,11 +74,11 @@
         <a href="{{ item.url }}" target="_blank">{{ item.url[:60] }}{% if item.url|length > 60 %}…{% endif %}</a>
       </td>
       <td style="padding:6px 8px;vertical-align:top">
-        <input name="title_{{ loop.index0 }}" type="text" value="{{ item.title }}"
-               form="edit-form" style="width:100%;min-width:180px">
+        <textarea name="title_{{ loop.index0 }}" rows="2" form="edit-form"
+                  style="width:100%;min-width:180px">{{ item.title }}</textarea>
       </td>
       <td style="padding:6px 8px;vertical-align:top">
-        <textarea name="snippet_{{ loop.index0 }}" rows="2" form="edit-form"
+        <textarea name="snippet_{{ loop.index0 }}" rows="4" form="edit-form"
                   style="width:100%;min-width:200px">{{ item.snippet or '' }}</textarea>
       </td>
       <td style="padding:6px 8px;vertical-align:top">

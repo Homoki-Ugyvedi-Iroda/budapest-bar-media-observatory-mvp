@@ -66,9 +66,7 @@ def logout():
 @login_required
 def dashboard():
     parsed_files = sorted(glob.glob("parsed_*.yaml"), reverse=True)
-    tosummarize_files = sorted(glob.glob("tosummarize_*.yaml"), reverse=True)
-    return render_template("dashboard.html", parsed_files=parsed_files,
-                           tosummarize_files=tosummarize_files)
+    return render_template("dashboard.html", parsed_files=parsed_files)
 
 
 # --- Parser ---

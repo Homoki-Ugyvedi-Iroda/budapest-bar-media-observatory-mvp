@@ -14,37 +14,6 @@
 &nbsp;
 <a href="{{ url_for('downloads') }}" class="btn btn-secondary">Letöltések</a>
 
-<h2>Kézi tétel hozzáadása</h2>
-{% if tosummarize_files %}
-<p style="font-size:0.9em;color:#888">Válasszon összefoglalási fájlt, adja meg az URL-t és töltse fel a lefordított szöveget.</p>
-<form method="post" action="{{ url_for('manual_item_check') }}" enctype="multipart/form-data">
-  <table style="border-spacing:4px 6px">
-    <tr>
-      <td><label>Összefoglalási fájl</label></td>
-      <td>
-        <select name="item_date" style="width:220px">
-          {% for f in tosummarize_files %}
-          {% set d = f.replace('tosummarize_', '').replace('.yaml', '') %}
-          <option value="{{ d }}">{{ d[:4] }}-{{ d[4:6] }}-{{ d[6:] }}</option>
-          {% endfor %}
-        </select>
-      </td>
-    </tr>
-    <tr>
-      <td><label>Eredeti weboldal címe</label></td>
-      <td><input name="url" type="url" style="width:360px" required></td>
-    </tr>
-    <tr>
-      <td><label>Lefordított szöveg az összefoglaláshoz (html vagy text)</label></td>
-      <td><input name="file" type="file" accept=".txt,.html,.htm" required></td>
-    </tr>
-  </table>
-  <button type="submit" class="btn btn-secondary" style="margin-top:6px">Ellenőrzés</button>
-</form>
-{% else %}
-<p style="color:#888">Nincs elérhető összefoglalási fájl. Először futtassa az áttekintést.</p>
-{% endif %}
-
 <h2>Lefutott forrásletöltő munkamenetek</h2>
 {% if parsed_files %}
 <ul>
