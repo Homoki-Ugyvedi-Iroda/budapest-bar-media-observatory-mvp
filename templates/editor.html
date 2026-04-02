@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Szerkesztő – {{ item_date }}{% endblock %}
+{% block content %}
+<h1>Szerkesztő — {{ item_date[:4] }}-{{ item_date[4:6] }}-{{ item_date[6:] }}</h1>
+<p style="font-size:.9em;color:#888">tosummarize_{{ item_date }}.yaml</p>
+
+{# --- Directory operations --- #}
+<h2>Könyvtárműveletek</h2>
+<table style="border-spacing:4px 8px">
+  <tr>
+    <td><strong>Átnevezés</strong></td>
+    <td>
+      <form method="post" action="{{ url_for('editor_rename', item_date=item_date) }}" style="display:inline-flex;gap:6px;align-items:center">
+        <input name="new_date" type="text" placeholder="ÉÉÉÉHHNN" maxlength="8" style="width:110px">
+        <button type="submit" class="btn btn-secondary" style="font-size:.85em;padding:5px 10px">Átnevezés</button>
+      </form>
+      <small style="color:#888;margin-left:6px">Átnevezi a tosummarize fájlt és a tartalomkönyvtárat is.</small>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Hírlevél törlése</strong></td>
+    <td>
+      {% if newsletter %}
+      <form method="post" action="{{ url_for('editor_delete_newsletter', item_date=item_date) }}" style="display:inline"
+            onsubmit="return confirm('Biztosan törli a hírlevelet?')">
+        <button type="submit" class="btn btn-danger" style="font-size:.85em;padding:5px 10px">Hírlevél törlése</button>
+      </form>
+      {% else %}
+      <span style="color:#aaa;font-size:.9em">Nincs hírlevél</span>
+      {% endif %}
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Könyvtár törlése</strong></td>
+    <td>
+      {% if has_content_dir %}
+      <form method="post" action="{{ url_for('editor_delete_dir', item_date=item_date) }}" style="display:inline"
+            onsubmit="return confirm('FIGYELEM: Ez véglegesen törli a content_{{ item_date }} könyvtárat és az összes tartalmát. Folytatja?')">
+        <button type="submit" class="btn btn-danger" style="font-size:.85em;padding:5px 10px">
+          <strong style="color:#fff">Könyvtár törlése (content_{{ item_date }})</strong>
+        </button>
+      </form>
+      {% else %}
+      <span style="color:#aaa;font-size:.9em">Nincs tartalomkönyvtár</span>
+      {% endif %}
+    </td>
+  </tr>
+</table>
+
+{# --- Items --- #}
+<h2>Tételek ({{ items|length }})</h2>
+
+{% if items %}
+{# Main edit form — inputs use form="edit-form" so they can be outside this element #}
+<form id="edit-form" method="post" action="{{ url_for('editor_save_items', item_date=item_date) }}"></form>
+
+<div style="overflow-x:auto">
+<table style="border-spacing:0;border-collapse:collapse;width:100%;font-size:.9em">
+  <thead>
+    <tr style="border-bottom:2px solid #ddd">
+      <th style="text-align:left;padding:6px 8px;width:80px">Forrás</th>
+      <th style="text-align:left;padding:6px 8px;width:180px">URL</th>
+      <th style="text-align:left;padding:6px 8px">Cím</th>
+      <th style="text-align:left;padding:6px 8px">Kivonat</th>
+      <th style="text-align:left;padding:6px 8px;width:160px">Kulcsszavak</th>
+      <th style="padding:6px 8px;width:70px"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr style="border-bottom:1px solid #eee">
+      <td style="padding:6px 8px;vertical-align:top;color:#555">{{ item.source }}</td>
+      <td style="padding:6px 8px;vertical-align:top;word-break:break-all;font-size:.8em">
+        <a href="{{ item.url }}" target="_blank">{{ item.url[:60] }}{% if item.url|length > 60 %}…{% endif %}</a>
+      </td>
+      <td style="padding:6px 8px;vertical-align:top">
+        <input name="title_{{ loop.index0 }}" type="text" value="{{ item.title }}"
+               form="edit-form" style="width:100%;min-width:180px">
+      </td>
+      <td style="padding:6px 8px;vertical-align:top">
+        <textarea name="snippet_{{ loop.index0 }}" rows="2" form="edit-form"
+                  style="width:100%;min-width:200px">{{ item.snippet or '' }}</textarea>
+      </td>
+      <td style="padding:6px 8px;vertical-align:top">
+        <input name="keywords_{{ loop.index0 }}" type="text"
+               value="{{ item.matched_keywords | join(', ') }}"
+               form="edit-form" style="width:100%">
+      </td>
+      <td style="padding:6px 8px;vertical-align:top;text-align:center">
+        <form method="post"
+              action="{{ url_for('editor_delete_item', item_date=item_date, idx=loop.index0) }}"
+              onsubmit="return confirm('Törli ezt a tételt és a hozzá tartozó fájlokat?\n\n{{ item.title|replace("'", "\\'") }}')">
+          <button type="submit" class="btn btn-danger" style="font-size:.8em;padding:4px 8px">Törlés</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<div style="margin-top:12px">
+  <button type="submit" form="edit-form" class="btn">Változások mentése</button>
+</div>
+
+{% else %}
+<p style="color:#888">Nincsenek tételek ebben a fájlban.</p>
+{% endif %}
+
+{# --- Add manual item --- #}
+<h2>Kézi tétel hozzáadása</h2>
+<p style="font-size:.9em;color:#888">Töltse fel az angol nyelvű szöveget. A rendszer kinyeri a címet és a kivonatot, amelyeket szerkeszthet.</p>
+<form method="post" action="{{ url_for('manual_item_check') }}" enctype="multipart/form-data">
+  <input type="hidden" name="item_date" value="{{ item_date }}">
+  <input type="hidden" name="return_to" value="{{ url_for('editor', item_date=item_date) }}">
+  <table style="border-spacing:4px 6px">
+    <tr>
+      <td><label>Eredeti weboldal címe</label></td>
+      <td><input name="url" type="url" style="width:360px" required></td>
+    </tr>
+    <tr>
+      <td><label>Lefordított szöveg az összefoglaláshoz (html vagy text)</label></td>
+      <td><input name="file" type="file" accept=".txt,.html,.htm" required></td>
+    </tr>
+  </table>
+  <button type="submit" class="btn btn-secondary" style="margin-top:6px">Ellenőrzés</button>
+</form>
+
+<p style="margin-top:24px"><a href="{{ url_for('editor_select') }}">&larr; Vissza a szerkesztő választóhoz</a></p>
+{% endblock %}

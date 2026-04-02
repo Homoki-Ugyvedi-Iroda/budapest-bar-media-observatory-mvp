@@ -1,7 +1,9 @@
 import os
 import re
+import io
 import glob
 import uuid
+import zipfile
 import logging
 import functools
 from datetime import date
@@ -11,7 +13,7 @@ import requests
 import anthropic
 from bs4 import BeautifulSoup
 from flask import (Flask, render_template, request, redirect,
-                   url_for, session, flash)
+                   url_for, session, flash, send_file)
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -237,10 +239,12 @@ def manual_item_check():
     with open(os.path.join("temp", temp_id), "w", encoding="utf-8") as f:
         f.write(raw)
 
+    return_to = request.form.get("return_to", "")
     return render_template("manual_item_check.html",
         item_date=item_date, url=url, source=source,
         title=title, snippet=snippet, keywords="manual",
-        temp_id=temp_id, file_type="html" if is_html else "txt")
+        temp_id=temp_id, file_type="html" if is_html else "txt",
+        return_to=return_to)
 
 
 @app.route("/manual-item/add", methods=["POST"])
@@ -291,21 +295,222 @@ def manual_item_add():
 
     logging.info(f"Kézi tétel hozzáadva: {title} ({source}) → {tosummarize_path}")
     flash(f"Hozzáadva: '{title}' (forrás: {source})")
-    return redirect(url_for("dashboard"))
+    return_to = request.form.get("return_to", "")
+    return redirect(return_to if return_to else url_for("dashboard"))
 
 
 # --- Drafter ---
 
-@app.route("/draft", methods=["POST"])
+@app.route("/draft")
 @login_required
-def run_draft():
+def draft_select():
+    files = sorted(glob.glob("tosummarize_*.yaml"), reverse=True)
+    unprocessed = []
+    for f in files:
+        d = f.replace("tosummarize_", "").replace(".yaml", "")
+        if not glob.glob(f"content_{d}/newsletter/*.html"):
+            unprocessed.append(d)
+    return render_template("draft_select.html", dates=unprocessed)
+
+
+@app.route("/draft/<item_date>", methods=["POST"])
+@login_required
+def run_draft(item_date):
     try:
         from drafter import run_drafter
-        flash(run_drafter())
+        flash(run_drafter(item_date))
     except Exception as e:
         logging.error(f"Drafter error: {e}")
         flash(f"Drafter error: {e}", "error")
     return redirect(url_for("dashboard"))
+
+
+# --- Editor ---
+
+@app.route("/editor")
+@login_required
+def editor_select():
+    files = sorted(glob.glob("tosummarize_*.yaml"), reverse=True)
+    dates = [f.replace("tosummarize_", "").replace(".yaml", "") for f in files]
+    return render_template("editor_select.html", dates=dates)
+
+
+@app.route("/editor/<item_date>")
+@login_required
+def editor(item_date):
+    path = f"tosummarize_{item_date}.yaml"
+    if not os.path.exists(path):
+        flash("Összefoglalási fájl nem található.", "error")
+        return redirect(url_for("editor_select"))
+    with open(path, encoding="utf-8") as f:
+        items = yaml.safe_load(f) or []
+    content_dir = f"content_{item_date}"
+    has_content_dir = os.path.isdir(content_dir)
+    newsletter_files = glob.glob(f"{content_dir}/newsletter/*.html") if has_content_dir else []
+    return render_template("editor.html",
+        item_date=item_date, items=items,
+        has_content_dir=has_content_dir,
+        newsletter=newsletter_files[0] if newsletter_files else None)
+
+
+@app.route("/editor/<item_date>/save-items", methods=["POST"])
+@login_required
+def editor_save_items(item_date):
+    path = f"tosummarize_{item_date}.yaml"
+    with open(path, encoding="utf-8") as f:
+        items = yaml.safe_load(f) or []
+    for i, item in enumerate(items):
+        item["title"] = request.form.get(f"title_{i}", item.get("title", "")).strip()
+        item["snippet"] = request.form.get(f"snippet_{i}", item.get("snippet", "")).strip()
+        kw_raw = request.form.get(f"keywords_{i}", "").strip()
+        item["matched_keywords"] = [k.strip() for k in kw_raw.split(",") if k.strip()] or item.get("matched_keywords", [])
+    with open(path, "w", encoding="utf-8") as f:
+        yaml.dump(items, f, allow_unicode=True, sort_keys=False)
+    logging.info(f"Editor: tételek mentve — {item_date}")
+    flash("Tételek mentve.")
+    return redirect(url_for("editor", item_date=item_date))
+
+
+@app.route("/editor/<item_date>/delete-item/<int:idx>", methods=["POST"])
+@login_required
+def editor_delete_item(item_date, idx):
+    path = f"tosummarize_{item_date}.yaml"
+    with open(path, encoding="utf-8") as f:
+        items = yaml.safe_load(f) or []
+    if idx < 0 or idx >= len(items):
+        flash("Érvénytelen tétel.", "error")
+        return redirect(url_for("editor", item_date=item_date))
+    item = items.pop(idx)
+    url_val = item.get("url", "")
+    if url_val:
+        safe = _safe_filename(url_val)
+        content_dir = f"content_{item_date}"
+        for fpath in [
+            f"{content_dir}/downloaded/{safe}.html",
+            f"{content_dir}/downloaded/{safe}.pdf",
+            f"{content_dir}/translations/{safe}_en.txt",
+        ]:
+            if os.path.exists(fpath):
+                os.remove(fpath)
+                logging.info(f"Editor: törölve — {fpath}")
+    with open(path, "w", encoding="utf-8") as f:
+        yaml.dump(items, f, allow_unicode=True, sort_keys=False)
+    logging.info(f"Editor: tétel törölve — '{item.get('title', '')}' ({item_date})")
+    flash(f"Tétel törölve: '{item.get('title', '')}'")
+    return redirect(url_for("editor", item_date=item_date))
+
+
+@app.route("/editor/<item_date>/delete-newsletter", methods=["POST"])
+@login_required
+def editor_delete_newsletter(item_date):
+    for fpath in glob.glob(f"content_{item_date}/newsletter/*.html"):
+        os.remove(fpath)
+        logging.info(f"Editor: hírlevél törölve — {fpath}")
+    flash("Hírlevél törölve.")
+    return redirect(url_for("editor", item_date=item_date))
+
+
+@app.route("/editor/<item_date>/rename", methods=["POST"])
+@login_required
+def editor_rename(item_date):
+    new_date = re.sub(r"[^\d]", "", request.form.get("new_date", "").strip())
+    if len(new_date) != 8:
+        flash("Érvénytelen dátum (ÉÉÉÉHHNN szükséges).", "error")
+        return redirect(url_for("editor", item_date=item_date))
+    new_yaml = f"tosummarize_{new_date}.yaml"
+    if os.path.exists(new_yaml):
+        flash(f"Már létezik: {new_yaml}", "error")
+        return redirect(url_for("editor", item_date=item_date))
+    os.rename(f"tosummarize_{item_date}.yaml", new_yaml)
+    old_dir, new_dir = f"content_{item_date}", f"content_{new_date}"
+    if os.path.isdir(old_dir):
+        os.rename(old_dir, new_dir)
+    logging.info(f"Editor: átnevezve {item_date} → {new_date}")
+    flash(f"Átnevezve: {item_date} → {new_date}")
+    return redirect(url_for("editor", item_date=new_date))
+
+
+@app.route("/editor/<item_date>/delete-dir", methods=["POST"])
+@login_required
+def editor_delete_dir(item_date):
+    import shutil
+    content_dir = f"content_{item_date}"
+    if os.path.isdir(content_dir):
+        shutil.rmtree(content_dir)
+        logging.info(f"Editor: könyvtár törölve — {content_dir}")
+        flash(f"Könyvtár törölve: {content_dir}")
+    else:
+        flash("A tartalomkönyvtár nem található.", "error")
+    return redirect(url_for("editor", item_date=item_date))
+
+
+# --- Downloads ---
+
+@app.route("/downloads")
+@login_required
+def downloads():
+    dirs = sorted(
+        [d for d in glob.glob("content_*") if os.path.isdir(d)],
+        reverse=True
+    )
+    entries = []
+    for d in dirs:
+        date_part = d.replace("content_", "")
+        newsletter = glob.glob(f"{d}/newsletter/*.html")
+        has_translations = os.path.isdir(f"{d}/translations") and bool(os.listdir(f"{d}/translations"))
+        entries.append({
+            "date": date_part,
+            "newsletter": newsletter[0] if newsletter else None,
+            "has_translations": has_translations,
+        })
+    return render_template("downloads.html", entries=entries)
+
+
+@app.route("/downloads/<item_date>/newsletter")
+@login_required
+def download_newsletter(item_date):
+    files = glob.glob(f"content_{item_date}/newsletter/*.html")
+    if not files:
+        flash("Hírlevél nem található.", "error")
+        return redirect(url_for("downloads"))
+    return send_file(files[0], as_attachment=True,
+                     download_name=f"newsletter_{item_date}.html")
+
+
+@app.route("/downloads/<item_date>/translations")
+@login_required
+def download_translations(item_date):
+    trans_dir = f"content_{item_date}/translations"
+    if not os.path.isdir(trans_dir) or not os.listdir(trans_dir):
+        flash("Nincsenek fordítások.", "error")
+        return redirect(url_for("downloads"))
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for fname in os.listdir(trans_dir):
+            zf.write(os.path.join(trans_dir, fname), fname)
+    buf.seek(0)
+    return send_file(buf, as_attachment=True,
+                     download_name=f"translations_{item_date}.zip",
+                     mimetype="application/zip")
+
+
+@app.route("/downloads/<item_date>/content")
+@login_required
+def download_content_dir(item_date):
+    content_dir = f"content_{item_date}"
+    if not os.path.isdir(content_dir):
+        flash("A tartalomkönyvtár nem található.", "error")
+        return redirect(url_for("downloads"))
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for root, _, files in os.walk(content_dir):
+            for fname in files:
+                full = os.path.join(root, fname)
+                zf.write(full, os.path.relpath(full, content_dir))
+    buf.seek(0)
+    return send_file(buf, as_attachment=True,
+                     download_name=f"content_{item_date}.zip",
+                     mimetype="application/zip")
 
 
 # --- Helpers ---

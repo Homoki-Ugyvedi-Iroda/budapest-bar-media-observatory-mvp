@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Letöltések{% endblock %}
+{% block content %}
+<h1>Letöltések</h1>
+
+{% if entries %}
+<table style="border-spacing:0;border-collapse:collapse;width:100%">
+  <thead>
+    <tr>
+      <th style="text-align:left;padding:6px 12px 6px 0;border-bottom:1px solid #ddd">Dátum</th>
+      <th style="text-align:left;padding:6px 12px 6px 0;border-bottom:1px solid #ddd">Hírlevél</th>
+      <th style="text-align:left;padding:6px 12px 6px 0;border-bottom:1px solid #ddd">Fordítások</th>
+      <th style="text-align:left;padding:6px 0;border-bottom:1px solid #ddd">Teljes tartalom</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in entries %}
+    <tr>
+      <td style="padding:8px 12px 8px 0;vertical-align:middle">
+        <strong>{{ e.date[:4] }}-{{ e.date[4:6] }}-{{ e.date[6:] }}</strong>
+      </td>
+      <td style="padding:8px 12px 8px 0;vertical-align:middle">
+        {% if e.newsletter %}
+        <a href="{{ url_for('download_newsletter', item_date=e.date) }}" class="btn btn-secondary" style="font-size:.85em;padding:5px 10px">
+          Hírlevél letöltése (.html)
+        </a>
+        {% else %}
+        <span style="color:#aaa;font-size:.9em">Nincs hírlevél</span>
+        {% endif %}
+      </td>
+      <td style="padding:8px 12px 8px 0;vertical-align:middle">
+        {% if e.has_translations %}
+        <a href="{{ url_for('download_translations', item_date=e.date) }}" class="btn btn-secondary" style="font-size:.85em;padding:5px 10px">
+          Fordítások letöltése (.zip)
+        </a>
+        {% else %}
+        <span style="color:#aaa;font-size:.9em">Nincsenek fordítások</span>
+        {% endif %}
+      </td>
+      <td style="padding:8px 0;vertical-align:middle">
+        <a href="{{ url_for('download_content_dir', item_date=e.date) }}" class="btn btn-secondary" style="font-size:.85em;padding:5px 10px">
+          Teljes könyvtár (.zip)
+        </a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:#888">Nincs elérhető tartalomkönyvtár.</p>
+{% endif %}
+
+<p style="margin-top:20px"><a href="{{ url_for('dashboard') }}">&larr; Vissza az irányítópultra</a></p>
+{% endblock %}

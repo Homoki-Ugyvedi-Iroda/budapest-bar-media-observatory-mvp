@@ -92,10 +92,16 @@ def _build_html(items, date):
 </html>"""
 
 
-def run_drafter():
-    path, date = _find_target()
-    if not path:
-        return "Nincsen feldolgozatlan tosummarize állomány."
+def run_drafter(item_date=None):
+    if item_date:
+        path = f"tosummarize_{item_date}.yaml"
+        date = item_date
+        if not os.path.exists(path):
+            return f"Fájl nem található: {path}"
+    else:
+        path, date = _find_target()
+        if not path:
+            return "Nincsen feldolgozatlan tosummarize állomány."
 
     with open(path, encoding="utf-8") as f:
         items = yaml.safe_load(f) or []

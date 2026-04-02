@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Szerkesztő – fájl kiválasztása{% endblock %}
+{% block content %}
+<h1>Szerkesztő</h1>
+
+{% if dates %}
+<p>Válassza ki a szerkeszteni kívánt összefoglalási fájlt:</p>
+<table style="border-spacing:0;border-collapse:collapse;margin-top:8px">
+  <thead>
+    <tr>
+      <th style="text-align:left;padding:6px 16px 6px 0;border-bottom:1px solid #ddd">Dátum</th>
+      <th style="text-align:left;padding:6px 16px 6px 0;border-bottom:1px solid #ddd">Fájl</th>
+      <th style="border-bottom:1px solid #ddd"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in dates %}
+    <tr>
+      <td style="padding:6px 16px 6px 0">{{ d[:4] }}-{{ d[4:6] }}-{{ d[6:] }}</td>
+      <td style="padding:6px 16px 6px 0;color:#888">tosummarize_{{ d }}.yaml</td>
+      <td style="padding:6px 0">
+        <a href="{{ url_for('editor', item_date=d) }}" class="btn btn-secondary" style="font-size:.85em;padding:5px 10px">Megnyitás</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:#888">Nincs elérhető összefoglalási fájl.</p>
+{% endif %}
+
+<p style="margin-top:20px"><a href="{{ url_for('dashboard') }}">&larr; Vissza az irányítópultra</a></p>
+{% endblock %}

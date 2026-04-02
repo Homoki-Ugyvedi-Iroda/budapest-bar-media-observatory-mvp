@@ -8,9 +8,11 @@
   <button type="submit" class="btn">Forrásletöltő futtatása ("parser")</button>
 </form>
 &nbsp;
-<form method="post" action="{{ url_for('run_draft') }}" style="display:inline">
-  <button type="submit" class="btn btn-secondary">Hírlevél készítő futtatása ("drafter")</button>
-</form>
+<a href="{{ url_for('draft_select') }}" class="btn btn-secondary">Hírlevél készítő ("drafter")</a>
+&nbsp;
+<a href="{{ url_for('editor_select') }}" class="btn btn-secondary">Szerkesztő</a>
+&nbsp;
+<a href="{{ url_for('downloads') }}" class="btn btn-secondary">Letöltések</a>
 
 <h2>Kézi tétel hozzáadása</h2>
 {% if tosummarize_files %}

@@ -79,8 +79,8 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
 
 ### C) Drafter Tool
 
-- Finds the latest `tosummarize_[yyyymmdd].yaml` that has not yet been processed
-  - "Processed" = a newsletter HTML already exists in `content_[yyyymmdd]/newsletter/`
+- Dashboard "Hírlevél készítő" button leads to a selection page listing all `tosummarize_[yyyymmdd].yaml` files that have not yet been processed ("Processed" = a newsletter HTML already exists in `content_[yyyymmdd]/newsletter/`)
+- User selects the desired file and clicks "Hírlevél készítése" to run the drafter for that date
 - Follows `editorial_instructions.md` for structure and priorities
 - Drafts a newsletter in Hungarian where each news item contains:
   - Source name (short, human-readable name of the bar association)
@@ -90,6 +90,36 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
 - Saves translated content to `content_[yyyymmdd]/translations/`
 - Newsletter and translations are downloaded via FTP when needed
 - All drafting and translation steps are logged
+
+### E) Editor
+
+- Accessible from the dashboard ("Szerkesztő" button) and from the top navigation bar
+- Selection page lists all `tosummarize_[date].yaml` files; user clicks "Megnyitás" to open one
+- Editor page for a selected date provides:
+
+  **a) Add manual item** — same two-step Ellenőrzés/Hozzáadás flow as on the dashboard; date is pre-set from the selected file; after adding, user is returned to the editor (not the dashboard)
+
+  **b) Delete existing item** — each item row has a "Törlés" button; on confirmation (JS dialog) the item is removed from the tosummarize yaml and its associated files are deleted:
+  - `content_[date]/downloaded/[safe_filename].(html|pdf)`
+  - `content_[date]/translations/[safe_filename]_en.txt`
+
+  **c) Delete drafted newsletter** — "Hírlevél törlése" button (shown only if a newsletter exists); on confirmation removes all HTML files from `content_[date]/newsletter/`
+
+  **d) Rename content directory** — user enters a new date (YYYYMMDD); both `tosummarize_[date].yaml` and `content_[date]/` are renamed; page redirects to the editor for the new date
+
+  **e) Delete content directory** — red "Könyvtár törlése" button; on confirmation removes `content_[date]/` and all its contents recursively
+
+  **f) Inline edit tosummarize entries** — title, snippet, and keywords for each item are editable inputs in the items table; "Változások mentése" saves all edits at once to the tosummarize yaml
+
+### F) Downloads
+
+- Dashboard has a "Letöltések" button leading to the downloads page
+- Downloads page lists all `content_[yyyymmdd]/` directories
+- For each directory, three download buttons are shown:
+  - **Hírlevél letöltése (.html)** — downloads the newsletter HTML file (shown only if a newsletter exists)
+  - **Fordítások letöltése (.zip)** — downloads all files in `translations/` as a zip (shown only if translations exist)
+  - **Teljes könyvtár (.zip)** — downloads the entire `content_[yyyymmdd]/` directory as a zip
+- Files are served directly from the server via Flask `send_file`; no FTP required
 
 ## Flask App Routes
 
@@ -103,9 +133,21 @@ Sites with `selectors: {}` use generic fallback (all page links) until selectors
 | `GET /review` | List available `parsed_*.yaml` files |
 | `GET /review/<date>` | Review items for a parse run |
 | `POST /review/<date>/save` | Save YAML, trigger batch download + translation |
-| `POST /draft` | Run drafter on latest unprocessed `tosummarize_*.yaml` |
+| `GET /draft` | Show selection page listing unprocessed `tosummarize_*.yaml` files |
+| `POST /draft/<date>` | Run drafter for the selected date |
+| `GET /downloads` | Download page: list all `content_*` directories |
+| `GET /downloads/<date>/newsletter` | Download newsletter HTML as attachment |
+| `GET /downloads/<date>/translations` | Download translations directory as zip |
+| `GET /downloads/<date>/content` | Download full content directory as zip |
 | `POST /manual-item/check` | Step 1: extract title/snippet from uploaded file, save to temp/, show preview |
 | `POST /manual-item/add` | Step 2: confirm/edit preview, move temp file, append item to `tosummarize_*.yaml` |
+| `GET /editor` | Editor selection page: list all `tosummarize_*.yaml` files |
+| `GET /editor/<date>` | Editor page for a specific date |
+| `POST /editor/<date>/save-items` | Save inline edits (title, snippet, keywords) to tosummarize yaml |
+| `POST /editor/<date>/delete-item/<idx>` | Delete item from yaml and remove associated downloaded/translated files |
+| `POST /editor/<date>/delete-newsletter` | Delete newsletter HTML from `content_[date]/newsletter/` |
+| `POST /editor/<date>/rename` | Rename tosummarize yaml and content directory to a new date |
+| `POST /editor/<date>/delete-dir` | Delete `content_[date]/` directory and all its contents |
 
 ## Authentication & Security
 

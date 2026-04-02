@@ -1,148 +1,125 @@
-# AI Médiafigyelő – Budapesti Ügyvédi Kamara (MI bizottság számára teszt megoldása)
-
-## Hogyan használd? — Normál heti folyamat
-
-### 1. lépés: Parser futtatása
-1. Nyisd meg a webalkalmazást böngészőben, és jelentkezz be
-2. Kattints a **Run Parser** gombra a dashboardon
-3. A parser lekéri a `sites.yaml`-ban szereplő weboldalakat, kulcsszavas szűréssel kiválasztja az AI-vonatkozású híreket, és elmenti a `parsed_[mai dátum].yaml` fájlba
-4. A futás eredménye (talált tételek száma) flash üzenetben jelenik meg; a részletek a `logs/parser.log` fájlban olvashatók
-
-### 2. lépés: Áttekintés és kijelölés
-1. A dashboardon kattints a legfrissebb parse-futás dátumára
-2. Az áttekintő oldalon a találatok forrás szerint csoportosítva jelennek meg; a kivonatokat a rendszer automatikusan angolra fordítja a gyors átfutáshoz
-3. Minden tételnél:
-   - Kattints az **Open** gombra az eredeti tartalom megtekintéséhez új ablakban
-   - Pipáld be a **Download** jelölőnégyzetet, ha a teljes HTML/PDF tartalmat le szeretnéd tölteni
-   - Pipáld be a **Translate** jelölőnégyzetet, ha az egész tartalmat angolra kell fordítani a hírlevélhez
-4. Kattints a lap alján a **Save** gombra — a rendszer elmenti a `tosummarize_[dátum].yaml` fájlt, elvégzi a kötegelt letöltést és fordítást, és az oldalon maradsz
-5. Ha szükséges, módosíthatod a kijelölést, és újra mentheted
-
-### 3. lépés: Hírlevél elkészítése
-1. Visszatérve a dashboardra, kattints a **Run Drafter** gombra
-2. A Drafter megkeresi a legfrissebb, még fel nem dolgozott `tosummarize_*.yaml` fájlt, és az `editorial_instructions.md` alapján magyar nyelvű hírlevelet készít
-3. A kész hírlevél HTML formátumban elérhető: `content_[dátum]/newsletter/`
-4. Töltsd le FTP-n, ellenőrizd, majd küldd el
+# AI Media Observatory – Budapest Bar Association (test solution for the AI Committee)
 
 ---
 
-## Célkitűzés
+## English
 
-Az eszköz célja, hogy a Budapesti Ügyvédi Kamara számára automatikusan figyelje a közép-európai nemzeti és regionális ügyvédi kamarák weboldalain megjelenő, mesterséges intelligenciával kapcsolatos híreket, és azokat heti magyar nyelvű hírlevél formájában eljuttassa a szerkesztőhöz.
+### Purpose
 
----
-
-## Működési mód
-
-A rendszer három fő komponensből áll, amelyek egyetlen Flask webalkalmazásban futnak a PythonAnywhere platformon:
-
-### 1. Parser (automatikus, heti futás)
-- Lekéri a `sites.yaml`-ban megadott ügyvédi kamarai weboldalak hírlistáit
-- A találatokat kulcsszavas szűréssel (magyar, angol és helyi nyelvű AI-kulcsszavak alapján) szűkíti
-- Az eredményeket `parsed_[yyyymmdd].yaml` fájlba menti
-- Duplikátumokat nem rögzít: az egyszer már látott URL-eket kihagyja
-
-### 2. Áttekintő eszköz (Flask webes felület, emberi felügyelet)
-- A szerkesztő megnyitja a kívánt `parsed_[yyyymmdd].yaml` fájlt
-- Az összes cím és kivonat automatikusan lefordítódik angolra (Claude Sonnet segítségével) az áttekinthetőség érdekében
-- Minden találatnál lehetőség van:
-  - az eredeti tartalom megnyitására új ablakban
-  - a tartalom letöltésére (`content_[yyyymmdd]/downloaded/`)
-  - az eredeti HTML tartalom angolra fordítására (`content_[yyyymmdd]/translations/`)
-- A kijelölt tételek mentése: `tosummarize_[yyyymmdd].yaml`
-
-### 3. Hírlevél-szerkesztő (Drafter)
-- Automatikusan megkeresi a legutóbbi, még fel nem dolgozott `tosummarize_*.yaml` fájlt
-- Az `editorial_instructions.md` irányelvei alapján kamaránként csoportosítva, magyar nyelvű összefoglalókkal hírlevelet készít
-- A kész hírlevelet HTML formátumban menti: `content_[yyyymmdd]/newsletter/`
-- A fájl FTP-n tölthető le, majd a szerkesztő ellenőrzés és küldés előtt átnézi
+This tool automatically monitors Central European national and regional bar association websites for AI-related news and compiles a weekly Hungarian-language newsletter for the Budapest Bar Association.
 
 ---
 
-## Külső tartalmak integrálása
+### Weekly workflow for editors
 
-Nem minden fontos tartalom érhető el automatikus scraping-gel. Az alábbi módszerekkel manuálisan is beilleszthető tartalom a hírlevelbe.
+#### Step 1 — Run the parser
 
-### Nem scrape-elhető HTML-ek (pl. CCBE LinkedIn-bejegyzések, zárt oldalak)
+1. Open the web application in a browser and log in
+2. Click **Forrásletöltő futtatása ("parser")** on the dashboard
+3. The parser fetches all websites listed in `sites.yaml`, filters articles by AI-related keywords, and saves results to `parsed_[YYYYMMDD].yaml`
+4. A flash message confirms how many items were found; details are in `logs/parser.log`
 
-1. Nyisd meg a tartalmat a böngészőben, és mentsd el HTML-ként (vagy másold ki a szöveget egy `.txt` fájlba)
-2. A dashboardon, az **Add Manual Item** űrlapon add meg:
-   - A kívánt dátumot (amelyik `tosummarize_*.yaml`-ba kerüljön)
-   - A forrást (pl. CCBE)
-   - A cikk címét
-   - Az eredeti URL-t (a hírlevelben forrásként fog szerepelni)
-3. Kattints az **Add Item** gombra — a rendszer hozzáadja a tételt a `tosummarize_[dátum].yaml`-hoz, és megmutatja a várt fordítási fájlnevet
-4. Az **Upload Translation** űrlapon töltsd fel a mentett HTML vagy TXT fájlt (ugyanazon dátummal és URL-lel)
-5. A Drafter automatikusan felhasználja a feltöltött fájlt a magyar összefoglaló elkészítéséhez
+The parser can also run automatically on a schedule (e.g. weekly via PythonAnywhere scheduled task).
 
-### PDF-ek (automatikus scraping esetén is, manuális fordítással)
+#### Step 2 — Review and select items
 
-**Fontos:** A parser csak PDF-hivatkozásokat gyűjt, a fájl tartalmát nem olvassa be automatikusan.
+1. On the dashboard, click the date of the latest parse run under **Lefutott forrásletöltő munkamenetek**
+2. The review page shows all found articles grouped by source (bar association)
+3. Titles and snippets are automatically translated to English by Claude so you can quickly assess relevance
+4. For each article you want to include in the newsletter:
+   - Check **Download** to save the full HTML/PDF to `content_[date]/downloaded/`
+   - Check **Translate** to translate the full content to English and save it to `content_[date]/translations/`
+   - Click the URL to open the original page in a new tab
+5. Click **Save** at the bottom — the system saves `tosummarize_[date].yaml`, runs the batch download and translation, and keeps you on the review page
+6. You can adjust your selection and save again as needed
 
-- **Letöltés:** Az áttekintő felületen a Download jelölőnégyzet kipipálásával a PDF a `content_[yyyymmdd]/downloaded/` mappába kerül. Ha automatikusan nem érhető el, kézzel is letölthető FTP-n keresztül ugyanide.
-- **Fordítás:** Az automatikus fordítás PDF-fájloknál nem támogatott. A szöveg kinyeréséhez:
-  1. Nyisd meg a PDF-et, és másold ki a szöveget (vagy használj külső PDF-szövegkinyerő eszközt)
-  2. Fordítsd le angolra (pl. DeepL vagy Claude segítségével)
-  3. Mentsd el a fordítást `.txt` fájlként, és töltsd fel az **Upload Translation** űrlapon — vagy helyezd el közvetlenül FTP-n:
+#### Step 3 — Add items manually (optional)
 
-  ```
-  content_[yyyymmdd]/translations/[biztonságos_fájlnév]_en.txt
-  ```
+For articles the parser missed (paywalled content, LinkedIn posts saved as HTML, documents obtained manually):
 
-  Ha ez a fájl megtalálható, a Drafter automatikusan felhasználja a magyar összefoglaló elkészítéséhez.
+1. Save the article content as an `.html` or `.txt` file (English text)
+2. On the dashboard under **Kézi tétel hozzáadása**:
+   - Select the target `tosummarize_*.yaml` file from the dropdown
+   - Enter the original article URL ("Eredeti weboldal címe")
+   - Upload the saved file ("Lefordított szöveg az összefoglaláshoz")
+   - Click **Ellenőrzés**
+3. A preview page appears showing the auto-extracted title and snippet
+   - Edit the title, snippet, and keywords if needed
+   - Click **Hozzáadás** to save the item
+4. The uploaded file is used directly as the translation for the drafter
 
-> **Megjegyzés a fájlnevekről:** A rendszer az URL-ből képezi a fájlnevet (speciális karakterek helyett aláhúzás, max. 80 karakter). Az Add Manual Item után megjelenő flash üzenet pontosan megmutatja a várt fájlnevet.
+#### Step 4 — Run the drafter
 
----
+1. On the dashboard, click **Hírlevél készítő ("drafter")** — this opens a selection page
+2. The page lists all `tosummarize_*.yaml` files that do not yet have a newsletter; click **Hírlevél készítése** next to the desired date
+3. The drafter reads the `editorial_instructions.md` guidelines and generates a Hungarian-language newsletter
+3. Each newsletter item contains: source name, original URL, 2–4 sentence Hungarian summary
+4. The finished newsletter is saved as HTML to `content_[date]/newsletter/`
 
-## Éves költségterv
+#### Step 5 — Download the newsletter and files
 
-| Tétel | Számítás | Éves összeg |
-|---|---|---|
-| Anthropic API (Claude Sonnet) | ~1 USD/futtatás × 52 hét | ~52 USD |
-| PythonAnywhere hosting | éves előfizetés | ~100 USD |
-| **Összesen** | | **~152 USD/év** |
+1. Click **Letöltések** on the dashboard
+2. The downloads page lists all content directories by date. For each date:
+   - **Hírlevél letöltése (.html)** — downloads the newsletter HTML directly to your browser (only shown if a newsletter has been drafted)
+   - **Fordítások letöltése (.zip)** — downloads all translation files as a zip archive
+   - **Teljes könyvtár (.zip)** — downloads the complete `content_[date]/` directory as a zip
 
-> Az API-költség becslése egy teszt alapján: 9 weboldal egyszeri feldolgozásán és öt hír fordításán alapszik, becsült érték. A tényleges költség a feldolgozott tételek számától függően változhat.
-
----
-
-## Az MVP-ben még nem implementált lépések
-
-Az alábbi funkciók tudatosan ki lettek hagyva a demonstrációs verzióból:
-
-- **CSS selectorok kitöltése** a `sites.yaml`-ban minden egyes weboldalnál. Jelenleg az összes oldal általános, visszaesési módban fut (az összes link begyűjtése), ami sok zajt és kevés strukturált adatot eredményez. A selectorokat böngésző fejlesztői eszközzel (F12) kell egyenként beállítani.
-- **JavaScript által renderelt oldalak kezelése.** Néhány weboldal (pl. az OZS, UNBR, ВАдС várhatóan) dinamikusan tölt be tartalmat, amelyet a sima HTTP-kérés nem lát. Ezeknél Playwright vagy hasonló eszköz szükséges.
-- **E-mail küldés.** A Drafter jelenleg csak a hírlevelet menti fájlba; az automatikus e-mail-küldés (célszerűen csak a szerkesztőnek vagy a kamarának) még nincs megvalósítva.
-- **PythonAnywhere ütemezett futtatás beállítása** a heti automatikus parseoláshoz.
-
----
-
-## Javasolt fejlesztési irányok
-
-- **További weboldalak felvétele** a `sites.yaml`-ba. Javasolt célpontok: további lengyel regionális kamarák, a litván, lett és észt ügyvédi kamarák, illetve az CCBE (Európai Ügyvédi Kamarák Tanácsa).
-- **Finomított kulcsszószűrés** az első futtatások visszajelzései alapján (téves pozitív jelzések, kimaradt hírek elemzése).
-- **PDF szövegkinyerés automatizálása** (pl. `pdfplumber` könyvtárral), hogy a szöveges PDF-fájlok emberi beavatkozás nélkül feldolgozhatók legyenek.
-- **E-mail küldés integrálása** a Drafter modulba (pl. SMTP vagy egy e-mail API segítségével). Kamarai hírlevélkiküldővel integrálni.
-- **Archív nézet:** korábbi hírlevelek és fordítások böngészése a webes felületen.
-- **Többnyelvű összefoglaló opció:** az angol fordítás mellett opcionálisan az eredeti nyelven is megőrizni a szöveget.
-- **FTP letöltés konfiguráció, régi állományok automatikus törlése**
-- **Szerkesztői felület több felhasználóssá tétele**
+Review the newsletter HTML, make any final edits, then send it. No FTP required.
 
 ---
 
-## Technikai követelmények
+### Adding content for PDF articles
+
+The parser collects PDF links but does not extract their text content automatically.
+
+- **Download:** tick the Download checkbox on the review page; the PDF is saved to `content_[date]/downloaded/`
+- **Translation:** automatic translation is not supported for PDFs. To include the content:
+  1. Open the PDF and copy the text (or use an external PDF-to-text tool)
+  2. Translate to English (e.g. with DeepL or Claude)
+  3. Save as a `.txt` file and place it directly on the server via FTP:
+     ```
+     content_[date]/translations/[safe_filename(url)]_en.txt
+     ```
+  The drafter will pick it up automatically.
+
+---
+
+### File and directory structure
+
+```
+app.py                              # Flask application (all routes)
+parser.py                           # Parser module (also runnable standalone)
+drafter.py                          # Drafter module (also runnable standalone)
+sites.yaml                          # Site list and per-site CSS selectors
+editorial_instructions.md           # Newsletter structure and priority rules
+.env                                # APP_PASSWORD, FLASK_SECRET_KEY, ANTHROPIC_API_KEY
+templates/                          # Jinja2 HTML templates
+parsed_[YYYYMMDD].yaml              # Raw parser output
+tosummarize_[YYYYMMDD].yaml         # Reviewer-selected items queued for drafting
+content_[YYYYMMDD]/
+  ├── downloaded/                   # Original HTML/PDF files
+  ├── translations/                 # English translations (*_en.txt)
+  └── newsletter/                   # Finished newsletter HTML
+logs/
+  ├── parser.log
+  ├── review.log
+  └── drafter.log
+temp/                               # Temporary files during manual item upload (auto-cleaned)
+```
+
+---
+
+### Technical requirements
 
 - Python 3.9+
-- PythonAnywhere fiók (paid plan ajánlott)
-- Anthropic API kulcs
-- Függőségek: `flask`, `requests`, `beautifulsoup4`, `pyyaml`, `anthropic`, `python-dotenv`
+- PythonAnywhere account (paid plan recommended)
+- Anthropic API key
 
 ```bash
 pip install flask requests beautifulsoup4 pyyaml anthropic python-dotenv
 ```
 
-A szükséges környezeti változók a `.env` fájlban:
+Required environment variables in `.env`:
 
 ```
 ANTHROPIC_API_KEY=sk-ant-...
@@ -151,4 +128,195 @@ FLASK_SECRET_KEY=...
 ```
 
 ---
+
+### Annual cost estimate
+
+| Item | Calculation | Annual total |
+|---|---|---|
+| Anthropic API (Claude Sonnet) | ~1 USD/run × 52 weeks | ~52 USD |
+| PythonAnywhere hosting | annual subscription | ~100 USD |
+| **Total** | | **~152 USD/year** |
+
+> API cost estimate based on a test run covering 9 websites and translating 5 articles. Actual cost depends on the number of items processed.
+
+---
+
+### Not yet implemented (MVP scope)
+
+- **CSS selectors** in `sites.yaml` for individual sites — currently most sites use generic fallback (all links), producing noise. Selectors must be set manually using browser dev tools (F12).
+- **JavaScript-rendered pages** — sites that load content dynamically (e.g. OZS, UNBR) require Playwright or similar; these are flagged in logs for manual follow-up.
+- **Email sending** — the drafter saves the newsletter as a file only; automated sending is not yet implemented.
+- **Scheduled parser runs** — must be configured manually in PythonAnywhere.
+
+---
+
+### Suggested improvements
+
+- Add more sites to `sites.yaml` (e.g. further Polish regional bars, Baltic bars, CCBE)
+- Refine keyword filtering based on false positives/negatives from initial runs
+- Automate PDF text extraction (e.g. with `pdfplumber`)
+- Integrate email sending into the drafter
+- Build an archive view for browsing past newsletters
+
+---
+---
+
+## Magyar
+
+### Célkitűzés
+
+Az eszköz célja, hogy a Budapesti Ügyvédi Kamara számára automatikusan figyelje a közép-európai nemzeti és regionális ügyvédi kamarák weboldalain megjelenő, mesterséges intelligenciával kapcsolatos híreket, és azokat heti magyar nyelvű hírlevél formájában eljuttassa a szerkesztőhöz.
+
+---
+
+### Heti munkafolyamat szerkesztők számára
+
+#### 1. lépés — Parser futtatása
+
+1. Nyisd meg a webalkalmazást böngészőben, és jelentkezz be
+2. Kattints a **Forrásletöltő futtatása ("parser")** gombra a dashboardon
+3. A parser lekéri a `sites.yaml`-ban szereplő weboldalakat, kulcsszavas szűréssel kiválasztja az AI-vonatkozású híreket, és elmenti a `parsed_[ÉÉÉÉHHNN].yaml` fájlba
+4. A futás eredménye (talált tételek száma) flash üzenetben jelenik meg; a részletek a `logs/parser.log` fájlban olvashatók
+
+A parser ütemezetten is futtatható (pl. heti automatikus futás PythonAnywhere ütemezővel).
+
+#### 2. lépés — Áttekintés és kijelölés
+
+1. A dashboardon kattints a legfrissebb parse-futás dátumára a **Lefutott forrásletöltő munkamenetek** listában
+2. Az áttekintő oldalon a találatok forrás (ügyvédi kamara) szerint csoportosítva jelennek meg
+3. A rendszer automatikusan angolra fordítja a cikkek kivonatát (Claude Sonnet segítségével) a gyors relevancia-elbírálás érdekében
+4. Minden hírlevélbe szánt tételnél:
+   - Pipáld be a **Download** jelölőnégyzetet, ha a teljes HTML/PDF tartalmat le szeretnéd tölteni (`content_[dátum]/downloaded/`)
+   - Pipáld be a **Translate** jelölőnégyzetet, ha a teljes tartalmat angolra kell fordítani (`content_[dátum]/translations/`)
+   - Kattints az URL-re az eredeti oldal megnyitásához új ablakban
+5. Kattints a lap alján a **Save** gombra — a rendszer elmenti a `tosummarize_[dátum].yaml` fájlt, elvégzi a kötegelt letöltést és fordítást, és az oldalon maradsz
+6. Szükség esetén módosíthatod a kijelölést, és újra mentheted
+
+#### 3. lépés — Kézi tételek hozzáadása (opcionális)
+
+Olyan tartalmakhoz, amelyeket a parser nem talált meg (fizetős tartalmak, LinkedInbejegyzések HTML-ként mentve, kézzel megszerzett dokumentumok):
+
+1. Mentsd el a cikk szövegét `.html` vagy `.txt` fájlként (angol nyelvű szöveg)
+2. A dashboardon, a **Kézi tétel hozzáadása** résznél:
+   - Válaszd ki a célként megadott `tosummarize_*.yaml` fájlt a legördülő listából
+   - Add meg a cikk eredeti URL-jét ("Eredeti weboldal címe")
+   - Töltsd fel a mentett fájlt ("Lefordított szöveg az összefoglaláshoz")
+   - Kattints az **Ellenőrzés** gombra
+3. Megjelenik az előnézeti oldal az automatikusan kinyert cím és kivonat adataival
+   - Szükség esetén szerkeszd a címet, kivonatot és kulcsszavakat
+   - Kattints a **Hozzáadás** gombra a mentéshez
+4. A feltöltött fájl lesz a Drafter által felhasznált fordítás
+
+#### 4. lépés — Hírlevél elkészítése
+
+1. A dashboardon kattints a **Hírlevél készítő ("drafter")** gombra — ez megnyitja a kiválasztó oldalt
+2. Az oldal listázza az összes olyan `tosummarize_*.yaml` fájlt, amelyhez még nem készült hírlevél; kattints a kívánt dátum melletti **Hírlevél készítése** gombra
+3. A Drafter az `editorial_instructions.md` irányelvei alapján magyar nyelvű hírlevelet készít
+3. Minden hírlevél-tétel tartalmazza: a forrás nevét, az eredeti URL-t, valamint egy 2–4 mondatos magyar összefoglalót
+4. A kész hírlevél HTML formátumban elérhető: `content_[dátum]/newsletter/`
+
+#### 5. lépés — Hírlevél és fájlok letöltése
+
+1. Kattints a **Letöltések** gombra a dashboardon
+2. A letöltési oldalon dátum szerint megjelenik az összes tartalomkönyvtár. Minden dátumnál:
+   - **Hírlevél letöltése (.html)** — a hírlevél HTML-fájl közvetlenül letöltődik a böngészőbe (csak akkor jelenik meg, ha már készült hírlevél)
+   - **Fordítások letöltése (.zip)** — az összes fordítási fájl zip-archívumban töltődik le
+   - **Teljes könyvtár (.zip)** — a teljes `content_[dátum]/` könyvtár zip-ben töltődik le
+
+Nézd át a hírlevél HTML-jét, végezd el az esetleges utolsó módosításokat, majd küldd el. FTP nem szükséges.
+
+---
+
+### PDF-cikkek kezelése
+
+A parser PDF-hivatkozásokat gyűjt, de a fájlok tartalmát nem nyeri ki automatikusan.
+
+- **Letöltés:** Az áttekintő felületen a Download jelölőnégyzet kipipálásával a PDF a `content_[dátum]/downloaded/` mappába kerül
+- **Fordítás:** PDF-fájlok automatikus fordítása nem támogatott. A tartalom beillesztéséhez:
+  1. Nyisd meg a PDF-et, és másold ki a szöveget (vagy használj külső PDF-szövegkinyerő eszközt)
+  2. Fordítsd le angolra (pl. DeepL vagy Claude segítségével)
+  3. Mentsd el `.txt` fájlként, és helyezd el közvetlenül FTP-n:
+     ```
+     content_[dátum]/translations/[biztonságos_fájlnév]_en.txt
+     ```
+  Ha ez a fájl megtalálható, a Drafter automatikusan felhasználja a magyar összefoglaló elkészítéséhez.
+
+---
+
+### Fájl- és könyvtárszerkezet
+
+```
+app.py                              # Flask alkalmazás (összes útvonal)
+parser.py                           # Parser modul (önállóan is futtatható)
+drafter.py                          # Drafter modul (önállóan is futtatható)
+sites.yaml                          # Weboldallista és oldalankénti CSS-szelektorok
+editorial_instructions.md           # Hírlevél-szerkezeti és prioritási irányelvek
+.env                                # APP_PASSWORD, FLASK_SECRET_KEY, ANTHROPIC_API_KEY
+templates/                          # Jinja2 HTML-sablonok
+parsed_[ÉÉÉÉHHNN].yaml              # A parser nyers kimenete
+tosummarize_[ÉÉÉÉHHNN].yaml         # Szerkesztő által kijelölt, összefoglalásra váró tételek
+content_[ÉÉÉÉHHNN]/
+  ├── downloaded/                   # Eredeti HTML/PDF-fájlok
+  ├── translations/                 # Angol fordítások (*_en.txt)
+  └── newsletter/                   # Kész hírlevél HTML-ben
+logs/
+  ├── parser.log
+  ├── review.log
+  └── drafter.log
+temp/                               # Ideiglenes fájlok kézi feltöltés közben (automatikusan törlődnek)
+```
+
+---
+
+### Technikai követelmények
+
+- Python 3.9+
+- PythonAnywhere fiók (paid plan ajánlott)
+- Anthropic API kulcs
+
+```bash
+pip install flask requests beautifulsoup4 pyyaml anthropic python-dotenv
+```
+
+Szükséges környezeti változók a `.env` fájlban:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+APP_PASSWORD=...
+FLASK_SECRET_KEY=...
+```
+
+---
+
+### Éves költségterv
+
+| Tétel | Számítás | Éves összeg |
+|---|---|---|
+| Anthropic API (Claude Sonnet) | ~1 USD/futtatás × 52 hét | ~52 USD |
+| PythonAnywhere hosting | éves előfizetés | ~100 USD |
+| **Összesen** | | **~152 USD/év** |
+
+> Az API-költség becslése egy teszt alapján: 9 weboldal egyszeri feldolgozásán és öt hír fordításán alapszik. A tényleges költség a feldolgozott tételek számától függően változhat.
+
+---
+
+### Az MVP-ben még nem implementált lépések
+
+- **CSS-szelektorok kitöltése** a `sites.yaml`-ban minden egyes weboldalnál. Jelenleg az összes oldal általános visszaesési módban fut (az összes link begyűjtése), ami sok zajt eredményez. A szelektorokat böngésző fejlesztői eszközzel (F12) kell egyenként beállítani.
+- **JavaScript által renderelt oldalak kezelése** — Néhány weboldal (pl. OZS, UNBR) dinamikusan tölt be tartalmat; ezeknél Playwright vagy hasonló eszköz szükséges, a log fájl jelzi ezeket.
+- **E-mail küldés** — A Drafter jelenleg csak a hírlevelet menti fájlba; az automatikus e-mail-küldés még nincs megvalósítva.
+- **PythonAnywhere ütemezett futtatás beállítása** a heti automatikus parseoláshoz.
+
+---
+
+### Javasolt fejlesztési irányok
+
+- További weboldalak felvétele a `sites.yaml`-ba (pl. további lengyel regionális kamarák, balti kamarák, CCBE)
+- Kulcsszószűrés finomítása az első futtatások visszajelzései alapján
+- PDF szövegkinyerés automatizálása (pl. `pdfplumber` könyvtárral)
+- E-mail küldés integrálása a Drafter modulba
+- Archív nézet korábbi hírlevelek böngészéséhez
+
+---
+
 *Developed with the assistance of [Claude Code](https://claude.ai/claude-code) (Anthropic).*
