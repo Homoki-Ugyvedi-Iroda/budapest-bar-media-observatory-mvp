@@ -141,23 +141,6 @@ FLASK_SECRET_KEY=...
 
 ---
 
-### Not yet implemented (MVP scope)
-
-- **CSS selectors** in `sites.yaml` for individual sites — currently most sites use generic fallback (all links), producing noise. Selectors must be set manually using browser dev tools (F12).
-- **JavaScript-rendered pages** — sites that load content dynamically (e.g. OZS, UNBR) require Playwright or similar; these are flagged in logs for manual follow-up.
-- **Email sending** — the drafter saves the newsletter as a file only; automated sending is not yet implemented.
-- **Scheduled parser runs** — must be configured manually in PythonAnywhere.
-
----
-
-### Suggested improvements
-
-- Add more sites to `sites.yaml` (e.g. further Polish regional bars, Baltic bars, CCBE)
-- Refine keyword filtering based on false positives/negatives from initial runs
-- Automate PDF text extraction (e.g. with `pdfplumber`)
-- Integrate email sending into the drafter
-- Build an archive view for browsing past newsletters
-
 ---
 ---
 
@@ -297,25 +280,6 @@ FLASK_SECRET_KEY=...
 | **Összesen** | | **~152 USD/év** |
 
 > Az API-költség becslése egy teszt alapján: 9 weboldal egyszeri feldolgozásán és öt hír fordításán alapszik. A tényleges költség a feldolgozott tételek számától függően változhat.
-
----
-
-### Az MVP-ben még nem implementált lépések
-
-- **CSS-szelektorok kitöltése** a `sites.yaml`-ban minden egyes weboldalnál. Jelenleg az összes oldal általános visszaesési módban fut (az összes link begyűjtése), ami sok zajt eredményez. A szelektorokat böngésző fejlesztői eszközzel (F12) kell egyenként beállítani.
-- **JavaScript által renderelt oldalak kezelése** — Néhány weboldal (pl. OZS, UNBR) dinamikusan tölt be tartalmat; ezeknél Playwright vagy hasonló eszköz szükséges, a log fájl jelzi ezeket.
-- **E-mail küldés** — A Drafter jelenleg csak a hírlevelet menti fájlba; az automatikus e-mail-küldés még nincs megvalósítva.
-- **PythonAnywhere ütemezett futtatás beállítása** a heti automatikus parseoláshoz.
-
----
-
-### Javasolt fejlesztési irányok
-
-- További weboldalak felvétele a `sites.yaml`-ba (pl. további lengyel regionális kamarák, balti kamarák, CCBE)
-- Kulcsszószűrés finomítása az első futtatások visszajelzései alapján
-- PDF szövegkinyerés automatizálása (pl. `pdfplumber` könyvtárral)
-- E-mail küldés integrálása a Drafter modulba
-- Archív nézet korábbi hírlevelek böngészéséhez
 
 ---
 

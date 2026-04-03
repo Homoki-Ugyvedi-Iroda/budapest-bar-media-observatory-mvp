@@ -496,6 +496,20 @@ def downloads():
     return render_template("downloads.html", entries=entries)
 
 
+@app.route("/downloads/logs/<logname>")
+@login_required
+def download_log(logname):
+    allowed = {"parser.log", "review.log", "drafter.log"}
+    if logname not in allowed:
+        flash("Ismeretlen naplófájl.", "error")
+        return redirect(url_for("downloads"))
+    path = os.path.join("logs", logname)
+    if not os.path.exists(path):
+        flash(f"A naplófájl nem található: {logname}", "error")
+        return redirect(url_for("downloads"))
+    return send_file(path, as_attachment=True, download_name=logname, mimetype="text/plain")
+
+
 @app.route("/downloads/<item_date>/newsletter")
 @login_required
 def download_newsletter(item_date):
