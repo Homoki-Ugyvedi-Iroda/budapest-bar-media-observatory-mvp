@@ -20,6 +20,7 @@
       <td style="padding:6px 16px 6px 0;color:#888">tosummarize_{{ d }}.yaml</td>
       <td style="padding:6px 0">
         <form method="post" action="{{ url_for('run_draft', item_date=d) }}" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-secondary">Hírlevél készítése</button>
         </form>
       </td>

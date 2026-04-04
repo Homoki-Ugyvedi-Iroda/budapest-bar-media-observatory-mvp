@@ -10,6 +10,7 @@
 {% endif %}
 
 <form method="post" action="{{ url_for('review_save', date=date) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   {% if grouped %}
     {% for source, items in grouped.items() %}
@@ -47,10 +48,10 @@
             {% endif %}
           </td>
           <td style="padding:8px 6px;font-size:.88em;color:#666">
-            <span class="size-cell" data-url="{{ item.url }}">…</span>
+            <span class="size-cell" data-url="{{ item.url | safe_href }}">…</span>
           </td>
           <td style="padding:8px 6px;text-align:center">
-            <a href="{{ item.url }}" target="_blank" class="btn btn-secondary"
+            <a href="{{ item.url | safe_href }}" target="_blank" class="btn btn-secondary"
                style="font-size:.8em;padding:4px 10px">↗</a>
           </td>
           <td style="padding:8px 6px;text-align:center">

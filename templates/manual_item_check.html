@@ -5,6 +5,7 @@
 <p style="font-size:0.9em;color:#888">Ellenőrizze és szükség esetén módosítsa az adatokat, majd kattintson a „Hozzáadás" gombra.</p>
 
 <form method="post" action="{{ url_for('manual_item_add') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="item_date" value="{{ item_date }}">
   <input type="hidden" name="url" value="{{ url }}">
   <input type="hidden" name="source" value="{{ source }}">

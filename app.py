@@ -3,24 +3,41 @@ import re
 import io
 import glob
 import uuid
+import socket
+import ipaddress
 import zipfile
 import logging
 import functools
 from datetime import date
+from urllib.parse import urlparse
 
 import yaml
 import requests
 import anthropic
 from bs4 import BeautifulSoup
 from flask import (Flask, render_template, request, redirect,
-                   url_for, session, flash, send_file)
+                   url_for, session, flash, send_file, jsonify)
 from dotenv import load_dotenv
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 APP_PASSWORD = os.environ["APP_PASSWORD"]
+
+# Issue 8 — session cookie security flags
+app.config["SESSION_COOKIE_SECURE"] = True    # requires HTTPS in production
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+# Issue 6 — CSRF protection
+csrf = CSRFProtect(app)
+
+# Issue 7 — rate limiting
+limiter = Limiter(key_func=get_remote_address, app=app, default_limits=[])
 
 os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
@@ -31,6 +48,65 @@ logging.basicConfig(
         logging.StreamHandler(),
     ],
 )
+
+
+# --- Security helpers ---
+
+def _valid_date(s):
+    """Return True if s is exactly 8 ASCII digits (YYYYMMDD)."""
+    return bool(s) and bool(re.fullmatch(r"\d{8}", s))
+
+
+def _valid_uuid(s):
+    """Return True if s is a valid UUID4."""
+    try:
+        uuid.UUID(s, version=4)
+        return True
+    except (ValueError, AttributeError):
+        return False
+
+
+def _is_safe_url(url):
+    """Return True if the URL is safe to fetch (no SSRF to internal networks)."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        host = parsed.hostname
+        if not host:
+            return False
+        ip = ipaddress.ip_address(socket.gethostbyname(host))
+        return not (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved)
+    except Exception:
+        return False
+
+
+# Issue 10 — block javascript: and other non-http(s) URL schemes in templates
+@app.template_filter("safe_href")
+def safe_href_filter(url):
+    """Allow only http/https URLs in href attributes."""
+    if url and (url.startswith("http://") or url.startswith("https://")):
+        return url
+    return "#"
+
+
+# Issue 9 — security headers on every response
+@app.after_request
+def set_security_headers(response):
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # unsafe-inline is needed for the inline <script> in review.html;
+    # move that block to a static .js file to allow a stricter policy later.
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "object-src 'none'; "
+        "base-uri 'self'"
+    )
+    return response
 
 
 # --- Auth ---
@@ -45,6 +121,7 @@ def login_required(f):
 
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute")  # Issue 7 — brute-force protection
 def login():
     if request.method == "POST":
         if request.form.get("password") == APP_PASSWORD:
@@ -117,6 +194,11 @@ def review_pending():
 @app.route("/review/<date>")
 @login_required
 def review(date):
+    # Issue 2 — path traversal guard
+    if not _valid_date(date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("review_list"))
+
     path = f"parsed_{date}.yaml"
     if not os.path.exists(path):
         flash("File not found.")
@@ -141,6 +223,11 @@ def review(date):
 @app.route("/review/<date>/delete", methods=["POST"])
 @login_required
 def review_delete(date):
+    # Issue 2 — path traversal guard
+    if not _valid_date(date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("review_list"))
+
     path = f"parsed_{date}.yaml"
     if os.path.exists(path):
         os.remove(path)
@@ -154,6 +241,11 @@ def review_delete(date):
 @app.route("/review/<date>/save", methods=["POST"])
 @login_required
 def review_save(date):
+    # Issue 2 — path traversal guard
+    if not _valid_date(date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("review_list"))
+
     path = f"parsed_{date}.yaml"
     with open(path, encoding="utf-8") as f:
         items = yaml.safe_load(f) or []
@@ -226,7 +318,6 @@ def _extract_snippet(content, is_html):
 
 
 def _match_source(url):
-    from urllib.parse import urlparse
     domain = urlparse(url).netloc.lower().lstrip("www.")
     with open("sites.yaml", encoding="utf-8") as f:
         sites = yaml.safe_load(f).get("sites", [])
@@ -244,7 +335,12 @@ def manual_item_check():
     url = request.form.get("url", "").strip()
     file = request.files.get("file")
 
-    if not item_date or not url or not file:
+    # Issue 2 — path traversal guard
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum formátum.", "error")
+        return redirect(url_for("dashboard"))
+
+    if not url or not file:
         flash("Minden mező kitöltése kötelező.", "error")
         return redirect(url_for("dashboard"))
 
@@ -290,10 +386,19 @@ def manual_item_add():
     file_type = request.form.get("file_type", "txt")
     is_html = file_type == "html"
 
+    # Issue 2 — path traversal guard
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum formátum.", "error")
+        return redirect(url_for("dashboard"))
+
     keywords = [k.strip() for k in keywords_raw.split(",") if k.strip()] or ["manual"]
 
-    temp_path = os.path.join("temp", temp_id)
-    if os.path.exists(temp_path):
+    # Issue 3 — temp_id path traversal guard: only use if it's a valid UUID4
+    temp_path = None
+    if temp_id and _valid_uuid(temp_id):
+        temp_path = os.path.join("temp", temp_id)
+
+    if temp_path and os.path.exists(temp_path):
         trans_dir = f"content_{item_date}/translations"
         os.makedirs(trans_dir, exist_ok=True)
         with open(temp_path, encoding="utf-8") as f:
@@ -346,6 +451,11 @@ def draft_select():
 @app.route("/draft/<item_date>", methods=["POST"])
 @login_required
 def run_draft(item_date):
+    # Issue 2 — path traversal guard
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("dashboard"))
+
     try:
         from drafter import run_drafter
         flash(run_drafter(item_date))
@@ -368,6 +478,11 @@ def editor_select():
 @app.route("/editor/<item_date>")
 @login_required
 def editor(item_date):
+    # Issue 2 — path traversal guard
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("editor_select"))
+
     path = f"tosummarize_{item_date}.yaml"
     if not os.path.exists(path):
         flash("Összefoglalási fájl nem található.", "error")
@@ -386,6 +501,11 @@ def editor(item_date):
 @app.route("/editor/<item_date>/save-items", methods=["POST"])
 @login_required
 def editor_save_items(item_date):
+    # Issue 2 — path traversal guard
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("editor_select"))
+
     path = f"tosummarize_{item_date}.yaml"
     with open(path, encoding="utf-8") as f:
         items = yaml.safe_load(f) or []
@@ -404,6 +524,11 @@ def editor_save_items(item_date):
 @app.route("/editor/<item_date>/delete-item/<int:idx>", methods=["POST"])
 @login_required
 def editor_delete_item(item_date, idx):
+    # Issue 2 — path traversal guard
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("editor_select"))
+
     path = f"tosummarize_{item_date}.yaml"
     with open(path, encoding="utf-8") as f:
         items = yaml.safe_load(f) or []
@@ -433,6 +558,11 @@ def editor_delete_item(item_date, idx):
 @app.route("/editor/<item_date>/delete-newsletter", methods=["POST"])
 @login_required
 def editor_delete_newsletter(item_date):
+    # Issue 2 — path traversal guard
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("editor_select"))
+
     for fpath in glob.glob(f"content_{item_date}/newsletter/*.html"):
         os.remove(fpath)
         logging.info(f"Editor: hírlevél törölve — {fpath}")
@@ -443,6 +573,11 @@ def editor_delete_newsletter(item_date):
 @app.route("/editor/<item_date>/rename", methods=["POST"])
 @login_required
 def editor_rename(item_date):
+    # Issue 2 — path traversal guard on incoming date
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("editor_select"))
+
     new_date = re.sub(r"[^\d]", "", request.form.get("new_date", "").strip())
     if len(new_date) != 8:
         flash("Érvénytelen dátum (ÉÉÉÉHHNN szükséges).", "error")
@@ -463,6 +598,11 @@ def editor_rename(item_date):
 @app.route("/editor/<item_date>/delete-dir", methods=["POST"])
 @login_required
 def editor_delete_dir(item_date):
+    # Issue 2 — path traversal guard
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("editor_select"))
+
     import shutil
     content_dir = f"content_{item_date}"
     if os.path.isdir(content_dir):
@@ -513,6 +653,11 @@ def download_log(logname):
 @app.route("/downloads/<item_date>/newsletter")
 @login_required
 def download_newsletter(item_date):
+    # Issue 2 — path traversal guard
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("downloads"))
+
     files = glob.glob(f"content_{item_date}/newsletter/*.html")
     if not files:
         flash("Hírlevél nem található.", "error")
@@ -524,6 +669,11 @@ def download_newsletter(item_date):
 @app.route("/downloads/<item_date>/translations")
 @login_required
 def download_translations(item_date):
+    # Issue 2 — path traversal guard
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("downloads"))
+
     trans_dir = f"content_{item_date}/translations"
     if not os.path.isdir(trans_dir) or not os.listdir(trans_dir):
         flash("Nincsenek fordítások.", "error")
@@ -541,6 +691,11 @@ def download_translations(item_date):
 @app.route("/downloads/<item_date>/content")
 @login_required
 def download_content_dir(item_date):
+    # Issue 2 — path traversal guard
+    if not _valid_date(item_date):
+        flash("Érvénytelen dátum.", "error")
+        return redirect(url_for("downloads"))
+
     content_dir = f"content_{item_date}"
     if not os.path.isdir(content_dir):
         flash("A tartalomkönyvtár nem található.", "error")
@@ -686,7 +841,6 @@ def _safe_filename(url):
 @login_required
 def api_size():
     """Return content size in KB for a given URL. Called via AJAX from review page."""
-    from flask import jsonify
     url = request.args.get("url", "")
     if not url:
         return jsonify(size_kb=None)
@@ -696,6 +850,9 @@ def api_size():
 
 def _get_size_kb(url):
     """Try HEAD first; fall back to GET if Content-Length is absent."""
+    # Issue 4+5 — SSRF guard
+    if not _is_safe_url(url):
+        return None
     try:
         resp = requests.head(url, timeout=5, allow_redirects=True)
         length = resp.headers.get("Content-Length")
@@ -774,6 +931,10 @@ def _enhance_and_translate_items(items):
 
 
 def _download_content(item, dest_dir):
+    # Issue 4+5 — SSRF guard
+    if not _is_safe_url(item["url"]):
+        logging.warning(f"Download blocked — unsafe URL: {item['url']}")
+        return
     try:
         resp = requests.get(item["url"], timeout=15)
         resp.raise_for_status()
@@ -814,4 +975,4 @@ def _translate_content(item, downloaded_dir, translations_dir):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

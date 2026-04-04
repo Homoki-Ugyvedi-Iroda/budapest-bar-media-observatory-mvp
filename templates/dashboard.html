@@ -6,6 +6,7 @@
 <h2>Műveletek</h2>
 <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
   <form method="post" action="{{ url_for('run_parse') }}" style="display:contents">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="btn btn-secondary">Forrásletöltő futtatása ("parser")</button>
   </form>
   <a href="{{ url_for('review_pending') }}" class="btn btn-secondary">Feldolgozatlan forrásletöltések</a>

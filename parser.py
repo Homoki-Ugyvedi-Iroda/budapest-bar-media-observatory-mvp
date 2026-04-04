@@ -1,13 +1,30 @@
 import os
 import re
 import glob
+import socket
+import ipaddress
 import logging
 from datetime import date
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import requests
 import yaml
 from bs4 import BeautifulSoup
+
+
+def _is_safe_url(url):
+    """Return True if the URL is safe to fetch (no SSRF to internal networks)."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        host = parsed.hostname
+        if not host:
+            return False
+        ip = ipaddress.ip_address(socket.gethostbyname(host))
+        return not (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved)
+    except Exception:
+        return False
 
 # --- Logging ---
 os.makedirs("logs", exist_ok=True)
@@ -68,6 +85,10 @@ def parse_site(site, keywords, seen_urls, session, today):
     results = []
 
     logging.info(f"[{name}] Fetching {url}")
+    # Issue 4 — SSRF guard
+    if not _is_safe_url(url):
+        logging.warning(f"[{name}] Blocked unsafe URL: {url}")
+        return results
     try:
         resp = session.get(url, timeout=15)
         resp.raise_for_status()

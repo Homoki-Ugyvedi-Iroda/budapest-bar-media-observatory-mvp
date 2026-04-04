@@ -11,6 +11,7 @@
     <td><strong>Átnevezés</strong></td>
     <td>
       <form method="post" action="{{ url_for('editor_rename', item_date=item_date) }}" style="display:inline-flex;gap:6px;align-items:center">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input name="new_date" type="text" placeholder="ÉÉÉÉHHNN" maxlength="8" style="width:110px">
         <button type="submit" class="btn btn-secondary" style="font-size:.85em;padding:5px 10px">Átnevezés</button>
       </form>
@@ -23,6 +24,7 @@
       {% if newsletter %}
       <form method="post" action="{{ url_for('editor_delete_newsletter', item_date=item_date) }}" style="display:inline"
             onsubmit="return confirm('Biztosan törli a hírlevelet?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-danger" style="font-size:.85em;padding:5px 10px">Hírlevél törlése</button>
       </form>
       {% else %}
@@ -36,6 +38,7 @@
       {% if has_content_dir %}
       <form method="post" action="{{ url_for('editor_delete_dir', item_date=item_date) }}" style="display:inline"
             onsubmit="return confirm('FIGYELEM: Ez véglegesen törli a content_{{ item_date }} könyvtárat és az összes tartalmát. Folytatja?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-danger" style="font-size:.85em;padding:5px 10px">
           <strong style="color:#fff">Könyvtár törlése (content_{{ item_date }})</strong>
         </button>
@@ -52,7 +55,9 @@
 
 {% if items %}
 {# Main edit form — inputs use form="edit-form" so they can be outside this element #}
-<form id="edit-form" method="post" action="{{ url_for('editor_save_items', item_date=item_date) }}"></form>
+<form id="edit-form" method="post" action="{{ url_for('editor_save_items', item_date=item_date) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
 
 <div style="overflow-x:auto">
 <table style="border-spacing:0;border-collapse:collapse;width:100%;font-size:.9em">
@@ -71,7 +76,7 @@
     <tr style="border-bottom:1px solid #eee">
       <td style="padding:6px 8px;vertical-align:top;color:#555">{{ item.source }}</td>
       <td style="padding:6px 8px;vertical-align:top;word-break:break-all;font-size:.8em">
-        <a href="{{ item.url }}" target="_blank">{{ item.url[:60] }}{% if item.url|length > 60 %}…{% endif %}</a>
+        <a href="{{ item.url | safe_href }}" target="_blank">{{ item.url[:60] }}{% if item.url|length > 60 %}…{% endif %}</a>
       </td>
       <td style="padding:6px 8px;vertical-align:top">
         <textarea name="title_{{ loop.index0 }}" rows="2" form="edit-form"
@@ -90,6 +95,7 @@
         <form method="post"
               action="{{ url_for('editor_delete_item', item_date=item_date, idx=loop.index0) }}"
               onsubmit="return confirm('Törli ezt a tételt és a hozzá tartozó fájlokat?\n\n{{ item.title|replace("'", "\\'") }}')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-danger" style="font-size:.8em;padding:4px 8px">Törlés</button>
         </form>
       </td>
@@ -111,6 +117,7 @@
 <h2>Kézi tétel hozzáadása</h2>
 <p style="font-size:.9em;color:#888">Töltse fel az angol nyelvű szöveget. A rendszer kinyeri a címet és a kivonatot, amelyeket szerkeszthet.</p>
 <form method="post" action="{{ url_for('manual_item_check') }}" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="item_date" value="{{ item_date }}">
   <input type="hidden" name="return_to" value="{{ url_for('editor', item_date=item_date) }}">
   <table style="border-spacing:4px 6px">

@@ -19,6 +19,7 @@
 {% set i = loop.index0 %}
 <div style="border:1px solid #ddd;border-radius:4px;padding:14px 16px;margin-bottom:14px">
   <form method="post" action="{{ url_for('sites_save_site', idx=i) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <table style="border-spacing:4px 6px;width:100%">
       <tr>
         <td style="width:120px"><label>URL</label></td>
@@ -54,6 +55,7 @@
   </form>
   <form method="post" action="{{ url_for('sites_delete_site', idx=i) }}" style="display:inline;margin-top:6px"
         onsubmit="return confirm('Biztosan törli: {{ site.short_name }} ({{ site.url }})?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="btn btn-danger" style="font-size:.85em;padding:5px 12px">Törlés</button>
   </form>
 </div>
@@ -65,6 +67,7 @@
 <h2 id="uj-weboldal" style="border-top:3px solid #0055aa;padding-top:16px;margin-top:32px">Új weboldal hozzáadása</h2>
 <div style="border:1px solid #ddd;border-radius:4px;padding:14px 16px">
   <form method="post" action="{{ url_for('sites_add_site') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <table style="border-spacing:4px 6px;width:100%">
       <tr>
         <td style="width:120px"><label>URL</label></td>
@@ -103,6 +106,7 @@
 {# ------------------------------------------------------------------ #}
 <h2 id="kulcsszavak" style="border-top:3px solid #0055aa;padding-top:16px;margin-top:32px">Kulcsszavak</h2>
 <form method="post" action="{{ url_for('sites_save_keywords') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <h3 style="font-size:1em;margin-bottom:4px">Globális kulcsszavak</h3>
   <p style="font-size:.85em;color:#888;margin:0 0 4px">Soronként vagy vesszővel elválasztva.</p>

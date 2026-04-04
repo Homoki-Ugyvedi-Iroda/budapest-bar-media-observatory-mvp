@@ -3,6 +3,7 @@
 {% block content %}
 <h1>Budapesti Ügyvédi Kamara Médiafigyelő</h1>
 <form method="post" style="margin-top:24px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label>Jelszó<br>
     <input type="password" name="password" autofocus
            style="margin-top:6px;padding:7px;width:240px;font-size:1em">
